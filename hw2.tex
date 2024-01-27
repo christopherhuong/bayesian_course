@@ -1,0 +1,583 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  pdftitle={hw2},
+  pdfauthor={Christopher Huong},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{hw2}
+\author{Christopher Huong}
+\date{2024-01-25}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2E1. Which of the expressions below correspond to the statement: the
+  probability of rain on Monday?
+\item
+  \begin{enumerate}
+  \def\labelenumii{(\arabic{enumii})}
+  \tightlist
+  \item
+    P(rain\textbar Monday)
+  \end{enumerate}
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2E2. Which of the following statements corresponds to the expression:
+  P(Monday\textbar rain)?
+\item
+  \begin{enumerate}
+  \def\labelenumii{(\arabic{enumii})}
+  \setcounter{enumii}{2}
+  \tightlist
+  \item
+    The probability that it is Monday, given it is raining
+  \end{enumerate}
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2E3. Which of the expressions below correspond to the statement: the
+  probability that it is Monday, given that it is raining?
+\item
+  \begin{enumerate}
+  \def\labelenumii{(\arabic{enumii})}
+  \tightlist
+  \item
+    P(Monday\textbar rain)
+  \end{enumerate}
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2E4. \ldots. Discuss the globe tossing example from the chapter, in
+  light of this statement. What does it mean to say ``the probability of
+  water is 0.7''?
+\item
+  The observer's strength of belief that the next toss will result in
+  water is 70\%.
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\tightlist
+\item
+  2M1. Recall the globe tossing model from the chapter. Compute and plot
+  the grid approximate posterior distribution for each of the following
+  sets of observations. In each case, assume a uniform prior for p.
+\end{enumerate}
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\tightlist
+\item
+  W, W, W
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{n}\OtherTok{=}\DecValTok{11} \CommentTok{\#10 sided globe}
+\CommentTok{\#make list of parameter values on the grid}
+\NormalTok{p\_grid }\OtherTok{\textless{}{-}} \FunctionTok{seq}\NormalTok{(}\AttributeTok{from=}\DecValTok{0}\NormalTok{, }\AttributeTok{to=}\DecValTok{1}\NormalTok{, }\AttributeTok{length.out=}\NormalTok{n)}
+\CommentTok{\#uniform prior at each parameter value on grid}
+\NormalTok{prior }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,n)}
+\CommentTok{\#compute likelihood at each parameter value}
+\NormalTok{likelihood }\OtherTok{\textless{}{-}} \FunctionTok{dbinom}\NormalTok{(}\AttributeTok{x=}\DecValTok{3}\NormalTok{, }\AttributeTok{size=}\DecValTok{3}\NormalTok{, }\AttributeTok{prob=}\NormalTok{p\_grid)}
+\NormalTok{unstd.posterior }\OtherTok{\textless{}{-}}\NormalTok{ prior }\SpecialCharTok{*}\NormalTok{ likelihood}
+\NormalTok{posterior }\OtherTok{\textless{}{-}}\NormalTok{ unstd.posterior }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(unstd.posterior)}
+\FunctionTok{plot}\NormalTok{( p\_grid , posterior , }\AttributeTok{type=}\StringTok{"b"}\NormalTok{ )}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-1-1.pdf}
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  W, W, W, L
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{likelihood }\OtherTok{\textless{}{-}} \FunctionTok{dbinom}\NormalTok{(}\AttributeTok{x=}\DecValTok{3}\NormalTok{, }\AttributeTok{size=}\DecValTok{4}\NormalTok{, }\AttributeTok{prob=}\NormalTok{p\_grid)}
+\NormalTok{unstd.posterior }\OtherTok{\textless{}{-}}\NormalTok{ prior }\SpecialCharTok{*}\NormalTok{ likelihood}
+\NormalTok{posterior }\OtherTok{\textless{}{-}}\NormalTok{ unstd.posterior }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(unstd.posterior)}
+\FunctionTok{plot}\NormalTok{( p\_grid , posterior , }\AttributeTok{type=}\StringTok{"b"}\NormalTok{ )}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-2-1.pdf}
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  L, W, W, L, W, W, W
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{likelihood }\OtherTok{\textless{}{-}} \FunctionTok{dbinom}\NormalTok{(}\AttributeTok{x=}\DecValTok{5}\NormalTok{, }\AttributeTok{size=}\DecValTok{7}\NormalTok{, }\AttributeTok{prob=}\NormalTok{p\_grid)}
+\NormalTok{unstd.posterior }\OtherTok{\textless{}{-}}\NormalTok{ prior }\SpecialCharTok{*}\NormalTok{ likelihood}
+\NormalTok{posterior }\OtherTok{\textless{}{-}}\NormalTok{ unstd.posterior }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(unstd.posterior)}
+\FunctionTok{plot}\NormalTok{( p\_grid , posterior , }\AttributeTok{type=}\StringTok{"b"}\NormalTok{ )}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-3-1.pdf} ***
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\tightlist
+\item
+  2M2. Now assume a prior for p that is equal to zero when p \textless{}
+  0.5 and is a positive constant when p ≥ 0.5. Again compute and plot
+  the grid approximate posterior distribution for each of the sets of
+  observations in the problem just above.
+\end{enumerate}
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\tightlist
+\item
+  W, W, W
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prior }\OtherTok{\textless{}{-}} \FunctionTok{ifelse}\NormalTok{(p\_grid }\SpecialCharTok{\textless{}} \FloatTok{0.5}\NormalTok{, }\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{)}
+
+\NormalTok{likelihood }\OtherTok{\textless{}{-}} \FunctionTok{dbinom}\NormalTok{(}\AttributeTok{x=}\DecValTok{3}\NormalTok{, }\AttributeTok{size=}\DecValTok{3}\NormalTok{, }\AttributeTok{prob=}\NormalTok{p\_grid)}
+\NormalTok{unstd.posterior }\OtherTok{\textless{}{-}}\NormalTok{ prior }\SpecialCharTok{*}\NormalTok{ likelihood}
+\NormalTok{posterior }\OtherTok{\textless{}{-}}\NormalTok{ unstd.posterior }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(unstd.posterior)}
+\FunctionTok{plot}\NormalTok{( p\_grid , posterior , }\AttributeTok{type=}\StringTok{"b"}\NormalTok{ )}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-4-1.pdf}
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  W, W, W, L
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{likelihood }\OtherTok{\textless{}{-}} \FunctionTok{dbinom}\NormalTok{(}\AttributeTok{x=}\DecValTok{3}\NormalTok{, }\AttributeTok{size=}\DecValTok{4}\NormalTok{, }\AttributeTok{prob=}\NormalTok{p\_grid)}
+\NormalTok{unstd.posterior }\OtherTok{\textless{}{-}}\NormalTok{ prior }\SpecialCharTok{*}\NormalTok{ likelihood}
+\NormalTok{posterior }\OtherTok{\textless{}{-}}\NormalTok{ unstd.posterior }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(unstd.posterior)}
+\FunctionTok{plot}\NormalTok{( p\_grid , posterior , }\AttributeTok{type=}\StringTok{"b"}\NormalTok{ )}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  L, W, W, L, W, W, W
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{likelihood }\OtherTok{\textless{}{-}} \FunctionTok{dbinom}\NormalTok{(}\AttributeTok{x=}\DecValTok{5}\NormalTok{, }\AttributeTok{size=}\DecValTok{7}\NormalTok{, }\AttributeTok{prob=}\NormalTok{p\_grid)}
+\NormalTok{unstd.posterior }\OtherTok{\textless{}{-}}\NormalTok{ prior }\SpecialCharTok{*}\NormalTok{ likelihood}
+\NormalTok{posterior }\OtherTok{\textless{}{-}}\NormalTok{ unstd.posterior }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(unstd.posterior)}
+\FunctionTok{plot}\NormalTok{( p\_grid , posterior , }\AttributeTok{type=}\StringTok{"b"}\NormalTok{ )}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-6-1.pdf}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2M3. Suppose there are two globes, one for Earth and one for Mars. The
+  Earth globe is 70\% covered in water. The Mars globe is 100\% land.
+  Further suppose that one of these globes---you don't know which---was
+  tossed in the air and produced a ``land'' observation. Assume that
+  each globe was equally likely to be tossed. Show that the posterior
+  probability that the globe was the Earth, conditional on seeing
+  ``land'' (Pr(Earth\textbar land)), is 0.23.
+\item
+  Given: P(land\textbar Earth) = 0.3 P(land\textbar Mars) = 1.0 P(Earth)
+  = 0.5 P(Mars) = 0.5 P(land) = P(land\textbar Earth) * P(Earth) +
+  P(land\textbar Mars) * P(Mars)
+\end{enumerate}
+
+Bayes theorem: P(A\textbar B) = P(B\textbar A)\emph{P(A) / P(B)
+P(Earth\textbar land) = (P(land\textbar Earth) } P(Earth)) / P(land)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{p\_land }\OtherTok{=} \FloatTok{0.3} \SpecialCharTok{*} \FloatTok{0.5} \SpecialCharTok{+} \FloatTok{1.0} \SpecialCharTok{*} \FloatTok{0.5}
+\NormalTok{p\_land}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.65
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{p\_earth\_given\_land }\OtherTok{=}\NormalTok{ (}\FloatTok{0.3} \SpecialCharTok{*} \FloatTok{0.5}\NormalTok{) }\SpecialCharTok{/} \FloatTok{0.65}
+\NormalTok{p\_earth\_given\_land}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.2307692
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2M4. Suppose you have a deck with only three cards. Each card has two
+  sides, and each side is either black or white. One card has two black
+  sides. The second card has one black and one white side. The third
+  card has two white sides. Now suppose all three cards are placed in a
+  bag and shuffled. Someone reaches into the bag and pulls out a card
+  and places it flat on a table. A black side is shown facing up, but
+  you don't know the color of the side facing down. Show that the
+  probability that the other side is also black is 2/3. Use the counting
+  method (Section 2 of the chapter) to approach this problem. This means
+  counting up the ways that each card could produce the observed data (a
+  black side facing up on the table).
+\item
+  Given: Card 1 = 2 black 0 white = 2 ways to produce the observed data
+  Card 2 = 1 black 1 white = 1 way to produce the observed data Card 3 =
+  0 black 2 white = 0 ways to produce the observed data
+\end{enumerate}
+
+Total 3 ways to produce the observed data P(Card1\textbar Black) = 2/3
+P(Card2\textbar Black) = 1/3 P(Card3\textbar Black) = 0/3
+
+Only Card1 will have the other side black, thus that probability is 2/3
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2M5. Now suppose there are four cards: B/B, B/W, W/W, and another B/B.
+  Again suppose a card is drawn from the bag and a black side appears
+  face up. Again calculate the probability that the other side is black.
+\item
+  Given: Card 1 = 2 black 0 white = 2 ways to produce the observed data
+  Card 2 = 1 black 1 white = 1 way to produce the observed data Card 3 =
+  0 black 2 white = 0 ways to produce the observed data Card 4 = 1 black
+  1 white = 2 ways to produce the observed data
+\end{enumerate}
+
+Total 5 ways to produce the observed data
+
+P(Card1\textbar Black) = 2/5 P(Card2\textbar Black) = 1/5
+P(Card3\textbar Black) = 0/5 P(Card4\textbar Black) = 2/5
+
+Cards 1 and 4 will have the other side also black, thus that probability
+is 4/5
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2M6. Imagine that black ink is heavy, and so cards with black sides
+  are heavier than cards with white sides. As a result, it's less likely
+  that a card with black sides is pulled from the bag. So again assume
+  there are three cards: B/B, B/W, and W/W. After experimenting a number
+  of times, you conclude that for every way to pull the B/B card from
+  the bag, there are 2 ways to pull the B/W card and 3 ways to pull the
+  W/W card. Again suppose that a card is pulled and a black side appears
+  face up. Show that the probability the other side is black is now 0.5.
+  Use the counting method, as before
+\item
+  Given: Card 1 = 2 black 0 white = 2 ways to produce observed data Card
+  2 = 1 black 1 white \emph{2 = 2 ways to produce observed data Card 3 =
+  0 black 2 white } 3 = 0 ways to produce observed data
+\end{enumerate}
+
+Of the 4 ways to produce observed data (black side up), 2 of those also
+have a black side down. 2/4 = 0.5
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2M7. Assume again the original card problem, with a single card
+  showing a black side face up. Before looking at the other side, we
+  draw another card from the bag and lay it face up on the table. The
+  face that is shown on the new card is white. Show that the probability
+  that the first card, the one showing a black side, has black on its
+  other side is now 0.75. Use the counting method, if you can. Hint:
+  Treat this like the sequence of globe tosses, counting all the ways to
+  see each observation, for each possible first card.
+\item
+  Give: Card 1 = 2 black 0 white Card 2 = 1 black 1 white Card 3 = 0
+  black 2 white
+\end{enumerate}
+
+Possible draws to produce the observed data (black, then white) Card1
+(B1), Card2 (W) Card1 (B2), Card2 (W) Card1 (B1), Card3 (W1) Card1 (B1),
+Card3 (W2) Card1 (B2), Card3 (W1) Card1 (B2), Card3 (W2) Card2 (B),
+Card3 (W1) Card2 (B), Card3 (W2)
+
+\hypertarget{of-the-8-ways-to-produce-the-data-6-of-them-include-card-1-as-the-card-which-would-have-the-other-side-of-the-first-card-be-black-as-well.}{%
+\subsection{Of the 8 ways to produce the data, 6 of them include Card 1
+as the card, which would have the other side of the first card be black
+as
+well.}\label{of-the-8-ways-to-produce-the-data-6-of-them-include-card-1-as-the-card-which-would-have-the-other-side-of-the-first-card-be-black-as-well.}}
+
+Thus that probability is 6/8 = 0.75
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2H1. Suppose there are two species of panda bear. Both are equally
+  common in the wild and live in the same places. They look exactly
+  alike and eat the same food, and there is yet no genetic assay capable
+  of telling them apart. They differ however in their family sizes.
+  Species A gives birth to twins 10\% of the time, otherwise birthing a
+  single infant. Species B births twins 20\% of the time, otherwise
+  birthing singleton infants. Assume these numbers are known with
+  certainty, from many years of field research. Now suppose you are
+  managing a captive panda breeding program. You have a new female panda
+  of unknown species, and she has just given birth to twins. What is the
+  probability that her next birth will also be twins?
+\item
+  Given: P(PandaA) = 0.5 P(PandaB) = 0.5 P(Twins\textbar PandaA) = 0.10
+  P(Twins\textbar PandaB) = 0.20 P(Twins) = 0.15
+\end{enumerate}
+
+Bayes theorem: P(A\textbar B) = P(B\textbar A)*P(A) / P(B)
+
+Compute posterior probability of the panda being species A and B given
+she just birthed twins
+
+P(PandaA\textbar Twins) = P(Twins\textbar PandaA) * P(PandaA) / P(Twins)
+= (0.10 * 0.5) / 0.15 = 0.333
+
+P(PandaB\textbar Twins) = P(Twins\textbar PandaB) * P(PandaB) / P(Twins)
+= (0.20 * 0.5) / 0.15 = 0.667
+
+Compute updated probabilities of twins for each species, given twins
+were just observed
+
+\hypertarget{ptwins2-ptwinspandaa-ppandaa-ptwinspanda-b-ppandab}{%
+\subsection{P(Twins2) = P(Twins\textbar PandaA) * P(PandaA) +
+P(Twins\textbar Panda B) *
+P(PandaB)}\label{ptwins2-ptwinspandaa-ppandaa-ptwinspanda-b-ppandab}}
+
+\hypertarget{section}{%
+\subsection{= 0.10 * 0.333 + 0.20 * 0.667}\label{section}}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\tightlist
+\item
+  2H2. Recall all the facts from the problem above. Now compute the
+  probability that the panda we have is from species A, assuming we have
+  observed only the first birth and that it was twins
+\end{enumerate}
+
+\hypertarget{a-ppandaatwins-ptwinspandaa-ppandaa-ptwins}{%
+\subsection{A) P(PandaA\textbar Twins) = P(Twins\textbar PandaA) *
+P(PandaA) / P(Twins)}\label{a-ppandaatwins-ptwinspandaa-ppandaa-ptwins}}
+
+\hypertarget{section-1}{%
+\subsection{= (0.10 * 0.5) / 0.15 = 0.333}\label{section-1}}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2H3. Continuing on from the previous problem, suppose the same panda
+  mother has a second birth and that it is not twins, but a singleton
+  infant. Compute the posterior probability that this panda is species A
+\item
+  P('Twins) = P('Twins\textbar PandaA) * P(PandaA) +
+  P('Twins\textbar PandaB) * P(PandaB) = (1-.10) * (0.333) + (1-0.20) *
+  (0.667) = 0.833
+\end{enumerate}
+
+\hypertarget{ppandaatwins-ptwinspandaa-ppandaa-ptwins}{%
+\subsection{P(PandaA\textbar'Twins) = P('Twins\textbar PandaA) *
+P(PandaA) / P('Twins)}\label{ppandaatwins-ptwinspandaa-ppandaa-ptwins}}
+
+\hypertarget{section-2}{%
+\subsection{= (0.90 * 0.333) / 0.833 = 0.360}\label{section-2}}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{enumerate}
+\def\labelenumi{\Alph{enumi})}
+\setcounter{enumi}{16}
+\item
+  2H4. A common boast of Bayesian statisticians is that Bayesian
+  inference makes it easy to use all of the data, even if the data are
+  of different types. So suppose now that a veterinarian comes along who
+  has a new genetic test that she claims can identify the species of our
+  mother panda. But the test, like all tests, is imperfect. This is the
+  information you have about the test: • The probability it correctly
+  identifies a species A panda is 0.8. • The probability it correctly
+  identifies a species B panda is 0.65. The vet administers the test to
+  your panda and tells you that the test is positive for species A.
+  First ignore your previous information from the births and compute the
+  posterior probability that your panda is species A. Then redo your
+  calculation, now using the birth data as well
+\item
+  Given: P(TestA\textbar PandaA) = 0.80 P(TestA\textbar PandaB) = 1-0.65
+  = 0.35 P(TestA) = 0.80 * 0.50 + 0.35 * 0.50 = 0.575
+\end{enumerate}
+
+P(PandaA\textbar TestA) = P(TestA\textbar PandaA) * P(PandaA) / P(TestA)
+= 0.80 * 0.50 / 0.575 = 0.696
+
+\end{document}

@@ -1,0 +1,40 @@
+---
+title: "hw3"
+author: "Christopher Huong"
+date: "2024-01-28"
+output: html_document
+---
+
+P(positive test  | vampire) = 0.95
+P(positive test  | mortal) = 0.01
+P(vampire) = 0.001
+
+Law of total probability
+P(positive test) 
+= P(positive test | vampire) * P(vampire) + P(positive test | mortal) * P(mortal)
+= 0.95*0.001 + 0.01*(1-0.001) = 0.01094
+
+
+Bayes theorem: P(A|B) = P(B|A) * P(A) / P(B)
+ 
+P(vampire|positive test) 
+= P(positive test|vampire)*P(positive test) / P(vampire)
+=0.95*0.001/0.01094
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -309,17 +309,44 @@ pairs(m4.3)
 
 # plotting the posterior --------------------------------------------------
 
+plot(height ~ weight, data =d2, col=rangi2)
+post <- extract.samples(m4.3, n=1e4)
+a_map <- mean(post$a)
+b_map <- mean(post$b)
+curve(a_map + b_map *(x - xbar), add=T)
 
 
+# plotting uncertainty from the posterior ---------------------------------
+N <- 30
+dN <- d2[1:N, ]
+mN <- quap(
+  alist(
+    height ~ dnorm(mu, sigma),
+    mu <- a + b * (weight - mean(weight)),
+    a ~ dnorm(178, 20),
+    b ~ dlnorm(0, 1),
+    sigma ~ dunif(0, 50)
+  ), data=dN
+)
+
+# extract 20 samples from the posterior
+post <- extract.samples( mN, n=20)
+#display raw data and sample size
+plot(dN$weight, dN$height,
+     xlim=range(d2$weight), ylim=range(d2$height),
+     col=rangi2, xlab="weight", ylab="height")
+mtext(concat("N = ", N))
+
+#plot lines
+for (i in 1:20)
+  curve(post$a[i] + post$b[i] * (x-mean(dN$weight)),
+        col=col.alpha("black", 0.3), add=T)
 
 
+# plotting regression intervals and contours ------------------------------
 
-
-
-
-
-
-
+post <- extract.samples(m4.3)
+mu_at_50 <- post$a + post$b * (50 - xbar)
 
 
 

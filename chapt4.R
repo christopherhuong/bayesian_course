@@ -227,10 +227,87 @@ data(Howell1); d <- Howell1; d2 <- d[d$age >= 18, ]
 plot(d2$height ~ d2$weight)
 
 
+# height ~ N(ui, sigma)
+# ui = alpha + beta * (xi - xbar)
+# alpha ~ N(178, 20)
+# beta ~ N(0, 10)
+# sigma ~ N(0, 50)
+
+
+# simulate heights from the priors ----------------------------------------
+library(rethinking)
+set.seed(2971)
+N <- 100
+a <- rnorm(N, 178, 20)
+b <- rnorm(N, 0, 10)
+
+
+
+plot(NULL, xlim=range(d2$weight), ylim=c(-100,400),
+     xlab="weight", ylab="height")
+abline(h=0, lty=2)
+abline(h=272, lty=1,lwd=0.5)
+mtext("b ~ dnorm(0,10)")
+xbar <- mean(d2$weight)
+for (i in 1:N) curve( a[i] + b[i] * (x - xbar),
+                      from=min(d2$weight), to=max(d2$weight), add=T,
+                      col=col.alpha("black",0.2))
+
+
+# new prior, beta ~ log-normal(0,1)
+b <- rlnorm(1e4, 0, 1)
+dens(b, xlim=c(0,5), adj=0.1)
+
+
+set.seed(2971)
+N <- 100
+a <- rnorm(N, 178, 20)
+b <- rlnorm(N, 0, 1)
+
+
+plot(NULL, xlim=range(d2$weight), ylim=c(-100,400),
+     xlab="weight", ylab="height")
+abline(h=0, lty=2)
+abline(h=272, lty=1,lwd=0.5)
+mtext("b ~ dnorm(0,10)")
+xbar <- mean(d2$weight)
+for (i in 1:N) curve( a[i] + b[i] * (x - xbar),
+                      from=min(d2$weight), to=max(d2$weight), add=T,
+                      col=col.alpha("black",0.2))
 
 
 
 
+# finding posterior distribution ------------------------------------------
+rm(list=ls())
+
+# height ~ dnorm(mu, sigma)
+# mu = a + b * (weight - xbar)
+# a ~ dnorm(178, 20)
+# b ~ dlnorm(0, 1)
+# sigma ~ udunif(0, 50)
+
+data(Howell1); d <- Howell1; d2 <- d[d$age >= 18, ]
+
+xbar <- mean(d2$weight)
+
+m4.3 <- quap(
+  alist(
+    height ~ dnorm(mu, sigma),
+    mu <- a + b * (weight - xbar),
+    a ~ dnorm(178, 20),
+    b ~ dlnorm(0, 1),
+    sigma ~ dunif(0,50)
+  ), data=d2
+)
+
+precis(m4.3)
+round(vcov(m4.3), 3)
+pairs(m4.3)
+
+
+
+# plotting the posterior --------------------------------------------------
 
 
 

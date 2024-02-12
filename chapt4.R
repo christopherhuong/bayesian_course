@@ -348,6 +348,41 @@ for (i in 1:20)
 post <- extract.samples(m4.3)
 mu_at_50 <- post$a + post$b * (50 - xbar)
 
+PI(mu_at_50, prob=0.89)
+
+
+mu <- link(m4.3)
+str(mu)
+
+# definte sequence of weights to compute predictions for
+# these values will be on horizontal axis
+weight.seq <- seq(from=25, to=70, by=1)
+
+#use link to compute mu for each sample from posterior and for each weight in weight.seq
+mu <- link(m4.3, data=data.frame(weight=weight.seq))
+str(mu)
+
+plot(height ~ weight, d2, type="n")
+
+for (i in 1:100) 
+  points(weight.seq, mu[i], pch=16, col=col.alpha(rangi2, 0.1))
+
+
+
+# curved lines ------------------------------------------------------------
+rm(list=ls())
+library(rethinking)
+data(Howell1)
+d <- Howell1
+
+plot(height ~ weight, d)
+
+
+
+
+
+
+
 
 
 

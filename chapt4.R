@@ -348,6 +348,52 @@ for (i in 1:20)
 post <- extract.samples(m4.3)
 mu_at_50 <- post$a + post$b * (50 - xbar)
 
+PI(mu_at_50, prob=.89)
+
+# link will take the quap approximation of posterior,
+# sample from posterior distribution,
+# then compute mu for each case in the data and sample from
+# the posterior distribution
+mu <- link(m4.3)
+str(mu)
+
+# define sequence of weights to compute predictions for
+# these values will be on the horizontal axis
+weight.seq <- seq( from=25 , to=70 , by=1 )
+
+mu <- link(m4.3, data=data.frame(weight=weight.seq))
+str(mu)
+
+plot( height ~ weight , d2 , type="n" )
+# loop over samples and plot each mu value
+for ( i in 1:100 )
+  points( weight.seq , mu[i,] , pch=16 , col=col.alpha(rangi2,0.1) )
+
+
+#summarize distribution of m
+mu.mean <- apply(mu, 2, mean)
+mu.PI <- apply(mu, 2, PI, prob=.89)
+
+# plot raw data
+# fading out points to make line and interval more visible
+plot( height ~ weight , data=d2 , col=col.alpha(rangi2,0.5) )
+# plot the MAP line, aka the mean mu for each weight
+lines( weight.seq , mu.mean )
+# plot a shaded region for 89% PI
+shade( mu.PI , weight.seq )
+
+
+# the link function -------------------------------------------------------
+post <- extract.samples(m4.3)
+mu.link <- function(weight) post$a + post$b * (weight -xbar)
+weight.seq <- seq(from=25, to = 70, by=1)
+mu <- sapply(weight.seq, mu.link)
+mu
+
+sim.height <- sim(m4.3, data = list(weight=weight.seq))
+str(sim.height)
+
+
 
 
 

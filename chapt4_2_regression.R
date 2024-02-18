@@ -164,20 +164,20 @@ str(sim.height)
 ####################
 # polynomial regression ---------------------------------------------------
 rm(list=ls())
-
+library(rethinking)
 data("Howell1")
 d <- Howell1
 
 plot(height~weight, data=d)
 #curved relationship
 
-d$weight_s <- (d$weight - mean(d$weight)/sd(d$weight)) #standardize
-d$weight_s2 <- d$weight_s^2 #square
+d$weight_s <- (d$weight - mean(d$weight))/sd(d$weight)
+d$weight_s2 <- d$weight_s^2
 
 m4.5 <- quap(
   alist(
     height ~ dnorm(mu, sigma),
-    mu <- a + b1*weight + b2*weight_s2,
+    mu <- a + b1*weight_s + b2*weight_s2,
     a ~ dnorm(178,20),
     b1 ~ dlnorm(0,1),
     b2 ~ dnorm(0,1),
@@ -189,6 +189,90 @@ precis(m4.5)
 # the predictor weight depends
 # upon two slopes, b1 and b2, it isn’t so easy 
 # to read the relationship off a table of coefficients
+
+#calculate mean relationship and 89% intervals of mean and predictions
+weight.seq <- seq(from=-2.2, to=2.2, length.out=30)
+pred_dat <- list(weight_s=weight.seq, weight_s2=weight.seq^2)
+mu <- link(m4.5, data=pred_dat)
+mu.mean <- apply(mu,2,mean)
+mu.PI <- apply(mu, 2, PI, prob=0.89)
+
+sim.height <- sim(m4.5, data=pred_dat)
+height.PI <- apply(sim.height, 2, PI, prob=0.89)
+
+#plot
+plot(height ~ weight_s, d, col=col.alpha(rangi2,0.5))
+lines(weight.seq, mu.mean)
+shade(mu.PI, weight.seq)
+shade(height.PI, weight.seq)
+
+
+
+# cubic -------------------------------------------------------------------
+
+
+
+
+
+# b-splines ---------------------------------------------------------------
+rm(list=ls())
+library(rethinking)
+data("cherry_blossoms")
+d <- cherry_blossoms
+
+precis(d)
+plot(doy ~ year, data=d)
+
+#knots
+d2 <- d[complete.cases(d$doy),]
+num_knots <- 15
+knot_list <- quantile(d2$year, probs=seq(0,1, length.out=num_knots))
+#evenly spaced 15 dates
+
+#polynomial degree. 3 = cubic splines
+library(splines)
+
+#get basis functions
+B <- bs(d2$year,
+        knots=knot_list[-c(1,num_knots)],
+        degree=3, intercept=T)
+
+#row = year corresponding to rows in d2
+#columns = basis functions
+plot(NULL, xlim=range(d2$year), ylim=c(0,1), xlab="year",ylab="basis")
+for(i in 1:ncol(B)) lines(d2$year, B[, i])
+
+#get parameter weights for each basis function
+m4.7 <- quap(
+  alist(
+    D ~ dnorm(mu, sigma),
+    mu <- a + B %*% w, 
+    a ~ dnorm(100,10),
+    w ~ dnorm(0,10),
+    sigma ~ dexp(1)),
+  data=list(D=d2$doy, B=B),
+  start=list(w=rep(0, ncol(B))))
+
+
+precis(m4.7, depth = 2)
+
+#plot posterior predictions
+post <- extract.samples(m4.7)
+w <- apply(post$w, 2, mean)
+plot(NULL, xlim=range(d2$year), ylim=c(-6,6), 
+     xlab="year", ylab="basis * weight")
+for (i in 1:ncol(B)) lines(d2$year, w[i]*B[,i])
+
+#97% posterior interval for mu at each year
+mu <- link(m4.7)
+mu_PI <- apply(mu,2,PI,0.97)
+plot(d2$year, d2$doy, col=col.alpha(rangi2,0.3),pch=16)
+shade(mu_PI, d2$year, col=col.alpha("black",0.5))
+
+
+
+
+
 
 
 

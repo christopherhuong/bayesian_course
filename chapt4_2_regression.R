@@ -234,7 +234,7 @@ library(splines)
 
 #get basis functions
 B <- bs(d2$year,
-        knots=knot_list[-c(1,num_knots)],
+        knots=knot_list[-c(1,num_knots)], #drop first and last knot
         degree=3, intercept=T)
 
 #row = year corresponding to rows in d2

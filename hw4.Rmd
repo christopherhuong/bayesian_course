@@ -1,0 +1,306 @@
+---
+title: "chapt4"
+author: "Christopher Huong"
+date: "2024-02-19"
+output: html_document
+---
+
+# 4E1. In the model definition below, which line is the likelihood?
+
+
+The first line. The second and third line are the prior distributions of the parameters defining the likelihood function
+
+***
+
+# 4E2. In the model definition just above, how many parameters are in the posterior distribution?
+
+
+Two- mu and sigma
+
+***
+
+# 4E3. Using the model definition above, write down the appropriate form of Bayes’ theorem that includes the proper likelihood and priors.
+
+
+P(A|B) = P(B|A)*P(A) / P(B) \
+
+P(mu, sigma | y) = ( P(y | mu, sigma) * P(mu) * p(sigma) )
+/ normalizing constant
+
+***
+
+# 4E4. In the model definition below, which line is the linear model?
+
+
+mu ~ a + b * x 
+
+***
+
+# 4E5. In the model definition just above, how many parameters are in the posterior distribution?
+
+
+Three- alpha, beta, sigma (these are stochastic/defined by a random probability distribution)
+
+***
+
+
+# 4M1. For the model definition below, simulate observed y values from the prior (not the posterior).
+
+
+```{r}
+mu_prior <- rnorm(1000, mean=0, sd=10) #1000 samples from a gaussian distribution with mean=0, sd=10
+sigma_prior <- rexp(1000, rate=1) #1000 samples from an exponential distribution with rate=1
+
+y_sim <- rnorm(1000, mu_prior, sigma_prior) # 1000 samples from gaussian distribution with means from mu_prior sample and sd's from sigma_prior sample
+
+plot(density(y_sim, adjust=.5))
+
+```
+***
+
+# 4M2. Translate the model just above into a quap formula.
+```{r}
+lm1 <- quap(
+  alist(
+    y ~ dnorm(mu, sigma),
+    mu ~ dnorm(0, 10),
+    sigma ~ dexp(1)
+  ), data=data
+)
+
+```
+
+***
+
+# 4M3. Translate the quap model formula below into a mathematical model definition
+
+yi ~ N(mu, sigma) \
+mu = a + b * xi \
+a ~ N(0, 10) \
+b ~ Unif(0, 1) \
+sigma ~ Exp(1) \
+
+***
+
+# 4M4. A sample of students is measured for height each year for 3 years. After the third year, you want to fit a linear regression predicting height using year as a predictor. Write down the mathematical model definition for this regression, using any variable names and priors you choose. Be prepared to defend your choice of priors.
+
+
+height ~ N(mu, sigma) \
+mu = a + b * year \
+a ~ N(170, 20) \
+b ~ Log-N(0, 1) \
+sigma ~ Exp(1) \
+
+***
+
+# 4M5. Now suppose I remind you that every student got taller each year. Does this information lead you to change your choice of priors? How?
+
+
+No because I already incorporated a positive relationship between height and year using a log-normal prior for b
+
+***
+
+# 4M6. Now suppose I tell you that the variance among heights for students of the same age is never more than 64cm. How does this lead you to revise your priors?
+
+
+Standard deviation will range from 0 to 8 \
+
+update to: sigma ~ Uniform(0,8)
+
+***
+
+# 4M7. Refit model m4.3 from the chapter, but omit the mean weight xbar this time. Compare the new model’s posterior to that of the original model. In particular, look at the covariance among the parameters. What is different? Then compare the posterior predictions of both models
+
+
+```{r, message=F, warning=F}
+library(rethinking)
+data("Howell1")
+d <- Howell1[Howell1$age >=18, ]
+  
+xbar <- mean(d$weight)
+
+m4.3 <- quap(
+  alist(
+    height ~ dnorm(mu, sigma),   #likelihood function
+    mu <- a + b * (weight-xbar), #linear model
+    a ~ dnorm(178, 20),          #a prior    
+    b ~ dlnorm(0, 1),            #b prior
+    sigma ~ dunif(0, 50)         # sigma prior
+  ),
+  data = d)
+  
+  
+```
+Omit xbar and refit
+
+```{r}
+m4.3_refit <- quap(
+     alist(
+       height ~ dnorm(mu, sigma),   #likelihood function
+       mu <- a + b * (weight), #linear model
+       a ~ dnorm(178, 20),          #a prior    
+        b ~ dlnorm(0, 1),            #b prior
+        sigma ~ dunif(0, 50)         # sigma prior
+      ),
+      data = d)
+```
+
+Compare posteriors
+```{r}
+precis(m4.3) 
+precis(m4.3_refit)
+```
+Lower posterior distribution mean for alpha \
+When subtracting xbar, beta becomes 0 at xbar, and alpha becomes the mean height
+
+
+```{r}
+vcov(m4.3) |> cov2cor() |> round(2)
+vcov(m4.3_refit) |> cov2cor() |> round(2)
+```
+
+a and b are inversely correlated. This is because subtracting xbar mean-centered stuff
+
+
+***
+
+# 4M8. In the chapter, we used 15 knots with the cherry blossom spline. Increase the number of knots and observe what happens to the resulting spline. Then adjust also the width of the prior on the weights—change the standard deviation of the prior and watch what happens. What do you think the combination of knot number and the prior on the weights controls?
+
+
+```{r,message=F,warning=F}
+library(splines)
+rm(list=ls())
+data("cherry_blossoms")
+d <- cherry_blossoms[complete.cases(cherry_blossoms$doy),]
+```
+
+Set number of knots to 30 and get basis functions
+```{r}
+knots=30
+knot_list <- quantile(d$year, probs=seq(0,1, length.out=knots))
+
+B <- bs(d$year,
+        knots=knot_list[-c(1,knots)],
+        degree=3, intercept=T)
+
+```
+
+Get parameter weights for each basis function
+```{r}
+bspline30 <- quap(
+       alist(
+         D ~ dnorm(mu, sigma),
+         mu <- a + B %*% w, 
+         a ~ dnorm(100,10),
+          w ~ dnorm(0,10),
+          sigma ~ dexp(1)),
+       data=list(D=d$doy, B=B),
+       start=list(w=rep(0, ncol(B))))
+
+```
+Plot posterior predictions
+```{r}
+post <- extract.samples(bspline30)
+w <- apply(post$w, 2, mean)
+plot(NULL, xlim=range(d$year), ylim=c(-6,6), 
+     xlab="year", ylab="basis * weight")
+for (i in 1:ncol(B)) lines(d$year, w[i]*B[,i])
+
+#97% posterior interval for mu at each year
+mu <- link(bspline30)
+mu_PI <- apply(mu,2,PI,0.97)
+plot(d$year, d$doy, col=col.alpha(rangi2,0.3),pch=16)
+shade(mu_PI, d$year, col=col.alpha("black",0.5))
+
+
+```
+Very wiggly
+
+
+Now, adjust width of prior on weights to sigma ~ dunif(0,50)
+
+```{r}
+bspline30_adjust <- quap(
+       alist(
+         D ~ dnorm(mu, sigma),
+         mu <- a + B %*% w, 
+         a ~ dnorm(100,10),
+          w ~ dnorm(0,10),
+          sigma ~ dunif(0,50)),
+       data=list(D=d$doy, B=B),
+       start=list(w=rep(0, ncol(B))))
+```
+
+Plot posterior predictions
+```{r}
+post <- extract.samples(bspline30_adjust)
+w <- apply(post$w, 2, mean)
+plot(NULL, xlim=range(d$year), ylim=c(-6,6), 
+     xlab="year", ylab="basis * weight")
+for (i in 1:ncol(B)) lines(d$year, w[i]*B[,i])
+
+#97% posterior interval for mu at each year
+mu <- link(bspline30_adjust)
+mu_PI <- apply(mu,2,PI,0.97)
+plot(d$year, d$doy, col=col.alpha(rangi2,0.3),pch=16)
+shade(mu_PI, d$year, col=col.alpha("black",0.5))
+
+
+```
+
+Not sure what changed
+
+***
+
+# 4H1. The weights listed below were recorded in the !Kung census, but heights were not recorded for these individuals. Provide predicted heights and 89% intervals for each of these individuals. That is, fill in the table below, using model-based predictions.
+
+
+```{r}
+rm(list=ls())
+data("Howell1")
+d <- Howell1[Howell1$age >= 18, ]
+
+xbar <- mean(d$weight)
+
+```
+
+Quadratic approximation of the posterior to a linear model
+
+```{r}
+lm1 <- quap(
+  alist(
+    height ~ dnorm(mu, sigma),
+    mu <- a + b * (weight-xbar),
+    a ~ dnorm(170,20),
+    b ~ dlnorm(0, 1),
+    sigma ~ dexp(1)
+  ), data=d
+)
+
+```
+
+Extract samples from the quadratic approximation of the posterior distribution
+```{r}
+posterior <- MASS::mvrnorm(n=1e4, mu=coef(lm1), Sigma=vcov(lm1)) |> as.data.frame()
+```
+
+Apply our model to the weights with missing heights
+
+
+```{r}
+w1 <- rnorm(1e4, posterior$a + posterior$b*(46.95-xbar), posterior$sigma)
+
+mean(w1)
+```
+
+
+
+
+
+
+
+
+
+
+
+

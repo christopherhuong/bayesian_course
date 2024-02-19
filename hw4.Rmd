@@ -284,21 +284,42 @@ Extract samples from the quadratic approximation of the posterior distribution
 posterior <- MASS::mvrnorm(n=1e4, mu=coef(lm1), Sigma=vcov(lm1)) |> as.data.frame()
 ```
 
-Apply our model to the weights with missing heights
+Apply our model to the weights with missing heights.\
+Sample 1000 from a Gaussian distribution, with mean and sigma sampled from the posterior distribution for each observed weight.
 
 
 ```{r}
 w1 <- rnorm(1e4, posterior$a + posterior$b*(46.95-xbar), posterior$sigma)
-
-mean(w1)
+w2 <- rnorm(1e4, posterior$a + posterior$b*(43.72-xbar), posterior$sigma)
+w3 <- rnorm(1e4, posterior$a + posterior$b*(64.78-xbar), posterior$sigma)
+w4 <- rnorm(1e4, posterior$a + posterior$b*(32.59-xbar), posterior$sigma)
+w5 <- rnorm(1e4, posterior$a + posterior$b*(54.63-xbar), posterior$sigma)
+```
+Calculate expected height (mean) for each, and 89% credibility interval
+```{r}
+means <- function(w){
+  return(c(mean(w), PI(w, prob=0.89)))
+         }
+weights <- c(w1, w2, w3, w4, w5)
+expected_heights <- sapply(list(w1, w2, w3, w4, w5), means)
+```
+Means, and 89% CI for each 5 observed weights
+```{r}
+print(expected_heights)
 ```
 
+***
+
+# 4H2. Select out all the rows in the Howell1 data with ages below 18 years of age. If you do it right, you should end up with a new data frame with 192 rows in it. (a) Fit a linear regression to these data, using quap. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets? (b) Plot the raw data, with height on the vertical axis and weight on the horizontal axis. Superimpose the MAP regression line and 89% interval for the mean. Also superimpose the 89% interval for predicted heights. (c) What aspects of the model fit concern you? Describe the kinds of assumptions you would change, if any, to improve the model. You don’t have to write any new code. Just explain what the model appears to be doing a bad job of, and what you hypothesize would be a better model.
 
 
 
+```{r}
+rm(list=ls())
+data(Howell1)
+d <- Howell1[Howell1$age <= 18,]
 
-
-
+```
 
 
 

@@ -273,10 +273,17 @@ shade(mu_PI, d2$year, col=col.alpha("black",0.5))
 
 
 
+# practice problems -------------------------------------------------------
 
+# 4H5. Return to data(cherry_blossoms) and model the association between blossom date (doy)
+# and March temperature (temp). Note that there are many missing values in both variables. You may
+# consider a linear model, a polynomial, or a spline on temperature. How well does temperature trend
+# predict the blossom trend?
+library(rethinking)
+rm(list=ls())
+data("cherry_blossoms")
 
-
-
+colSums(is.na(cherry_blossoms)) / nrow(cherry_blossoms) *100
 
 
 

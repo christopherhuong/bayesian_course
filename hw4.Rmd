@@ -59,7 +59,7 @@ plot(density(y_sim, adjust=.5))
 ***
 
 # 4M2. Translate the model just above into a quap formula.
-```{r}
+
 lm1 <- quap(
   alist(
     y ~ dnorm(mu, sigma),
@@ -68,7 +68,7 @@ lm1 <- quap(
   ), data=data
 )
 
-```
+
 
 ***
 
@@ -281,7 +281,7 @@ lm1 <- quap(
 
 Extract samples from the quadratic approximation of the posterior distribution
 ```{r}
-posterior <- MASS::mvrnorm(n=1e4, mu=coef(lm1), Sigma=vcov(lm1)) |> as.data.frame()
+posterior <- extract.samples(lm1)
 ```
 
 Apply our model to the weights with missing heights.\
@@ -317,9 +317,98 @@ print(expected_heights)
 ```{r}
 rm(list=ls())
 data(Howell1)
-d <- Howell1[Howell1$age <= 18,]
+d <- Howell1[Howell1$age < 18,]
 
 ```
+
+
+(A) Fit a linear regression\
+
+```{r}
+xbar <- mean(d$weight)
+
+lm2 <- quap(
+  alist(height ~ dnorm(mu, sigma),
+        mu <- a + b * (weight-xbar),
+        a ~ dnorm(170,20),
+        b ~ dlnorm(0,1),
+        sigma ~ dexp(1)),
+  data=d
+)
+
+posterior <- extract.samples(lm2)
+precis(lm2)
+```
+(B) Plot raw data, superimpose MAP regression line and 89% interval
+
+```{r}
+#compute predicted mu heights for each weight using the posterior
+mu.link <- function(weight) posterior$a + posterior$b*(weight-xbar)
+weight.seq <- seq(from=1, to=50, by=1)
+mu <- sapply(weight.seq, mu.link)
+
+mu.mean <- apply(mu, 2, mean)
+mu.pi <- apply(mu, 2, PI, prob=0.89)
+
+plot(height ~ weight, data=d, col=col.alpha(rangi2, 0.5))
+lines(weight.seq, mu.mean)
+shade(mu.pi, weight.seq)
+
+```
+(C) Model overestimates at low and high weights, and underestimates at middle weights. A curved line would fit the data better
+
+***
+
+
+# 4H3. Suppose a colleague of yours, who works on allometry, glances at the practice problems just above. Your colleague exclaims, “That’s silly. Everyone knows that it’s only the logarithm of body weight that scales with height!” Let’s take your colleague’s advice and see what happens. (a) Model the relationship between height (cm) and the natural logarithm of weight (log-kg). Use the entire Howell1 data frame, all 544 rows, adults and non-adults. Can you interpret the resulting estimates?
+
+```{r}
+rm(list=ls())
+data("Howell1")
+d<- Howell1
+
+logxbar <- mean(log(d$weight))
+  
+lm_log <- quap(
+  alist(height ~ dnorm(mu, sigma),
+        mu <- a + b * (log(weight)-logxbar),
+        a ~ dnorm(170, 20),
+        b ~ dlnorm(0,1),
+        sigma ~ dexp(1)),
+  data=d
+)
+
+precis(lm_log)
+```
+Slope is in log units. So every increase in 1 log-kg predicts a 47 cm increase in height.
+
+
+# (b) Begin with this plot: plot( height ~ weight , data=Howell1 ). Then use samples from the quadratic approximate posterior of the model in (a) to superimpose on the plot: (1) the predicted mean height as a function of weight, (2) the 97% interval for the mean, and (3) the 97% interval for predicted heights
+
+
+```{r}
+posterior <- extract.samples(lm_log)
+mu.link <- function(weight) posterior$a + posterior$b*(log(weight)-logxbar)
+weight.seq <- seq(from=1, to=70, by=1)
+mu <- sapply(weight.seq, mu.link)
+mu.mean <- apply(mu, 2, mean)
+mu.pi <- apply(mu, 2, PI, prob=0.89)
+#89% interval for predicted heights
+p.heights <- sapply(weight.seq, function(a) (rnorm(1e4, posterior$a + posterior$b * (log(a)-logxbar), posterior$sigma) |> PI(prob=0.89)))
+
+              
+plot(height ~ weight, data=d, col="blue", pch=16, cex=0.5)
+lines(weight.seq, mu.mean)
+shade(mu.pi, weight.seq)
+shade(p.heights, weight.seq)
+
+```
+
+***
+
+
+
+
 
 
 

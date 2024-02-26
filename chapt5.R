@@ -305,8 +305,16 @@ shade(mu_PI, xseq)
 # that we suspect that the magnitude of a mother’s body mass
 # is related to milk energy, in a linear fashion
 
+rm(list=ls())
+data("milk"); d <- milk; rm(milk)
+dcc <- d[complete.cases(d$kcal.per.g, d$neocortex.perc, d$mass),]
 
-m5.6 <- quap(
+dcc$M <- dcc$mass |> log() |> standardize()
+dcc$N <- standardize(dcc$neocortex.perc)
+dcc$K <- standardize(dcc$kcal.per.g)
+
+
+m5.6_log <- quap(
   alist(
     K~ dnorm(mu, sigma),
     mu <- a + bM * M,
@@ -317,9 +325,16 @@ m5.6 <- quap(
   data=dcc
 )
 
-precis(m5.6)
+precis(m5.6_log)
+post <- extract.samples(m5.6_log)
+
+plot(K ~ M, data=dcc)
+abline(a=mean(post$a), b=mean(post$bM))
+#cant get shade
+
+#alternative plot
 Mseq <- seq(from=min(dcc$M)-0.15, to=max(dcc$M)-0.15, length.out=30)
-mu <- link(m5.6, data=list(M=Mseq)) 
+mu <- link(m5.6_log, data=list(M=Mseq))
 mu_mean <- colMeans(mu)
 mu_pi <- apply(mu, 2, PI)
 
@@ -328,43 +343,68 @@ lines(Mseq, mu_mean, lwd=2)
 shade(mu_pi, Mseq)
 
 
-# log mass ----------------------------------------------------------------
-dcc$log_M <- log(dcc$mass)
-dcc$log_M <- standardize(dcc$log_M)
 
-m5.6_log <- quap(
+# multivariate reg --------------------------------------------------------
+
+m5.7 <- quap(
   alist(
-    K~ dnorm(mu, sigma),
-    mu <- a + bM * log_M,
-    a ~ dnorm(0, 0.2), 
+    K ~ dnorm(mu, sigma),
+    mu <- a + bN*N + bM*M,
+    a ~ dnorm(0, 0.2),
+    bN ~ dnorm(0, 0.5),
     bM ~ dnorm(0, 0.5),
     sigma ~ dexp(1)
   ),
   data=dcc
 )
 
-precis(m5.6_log)
-post <- extract.samples(m5.6_log)
 
-plot(K ~ log_M, data=dcc)
-abline(a=mean(post$a), b=mean(post$bM))
-#cant get shade
+precis(m5.7)
 
 
-#errored way for some reason
-Mseq <- seq(from=min(dcc$log_M)-0.15, to=max(dcc$log_M)-0.15, length.out=30)
-mu <- link(m5.6_log, data=list(M=Mseq)) 
-mu_mean <- colMeans(mu)
-mu_pi <- apply(mu, 2, PI)
-
-plot(K ~ log_M, data=dcc)
-lines(Mseq, mu_mean, lwd=2)
-shade(mu_pi, Mseq)
+plot(coeftab(m5.5, m5.6_log, m5.7), pars=c("bM", "bN"))
+#correlated predictors masks their individual associations
+pairs( ~K + M + N , dcc ) 
+cor(dcc[, c("K", "M", "N")])
 
 
 
+# counterfactual plots -----------------------------------------------------
+
+# counterfactual effect of M on K, keeping N=0
+Mseq <- seq(from=(min(dcc$M)-0.15), to=max(dcc$M)+0.15, length.out=30)
+mu <- link(m5.7, data=data.frame(M=Mseq, N=0))
+mu_mean <- apply(mu, 2, mean)
+mu_PI <- apply(mu, 2, PI)
+plot(NULL, xlim=range(dcc$M), ylim=range(dcc$K),
+     xlab="manipulated M values", ylab="counterfactual K")
+mtext("counterfactual holding N=0")
+lines(x=Mseq, y=mu_mean)
+shade(object=mu_PI, lim=Mseq)
 
 
+#now same for N on K, with M=0
+
+
+# simulating a masking relationship ---------------------------------------
+
+# M -> K <- N
+# M -> N
+n <- 100
+M <- rnorm(n, mean=0,sd=1)
+N <- rnorm(n, mean=M,sd=1)
+K <- rnorm(n, mean=N-M)
+
+d_sim <- data.frame(K=K, M=M, N=N)
+
+
+library(dagitty)
+dag5.7 <- dagitty( "dag{
+M -> K <- N
+M -> N }" )
+coordinates(dag5.7) <- list( x=c(M=0,K=1,N=2) , y=c(M=0.5,K=1,N=0.5) )
+MElist <- equivalentDAGs(dag5.7)
+drawdag(MElist)
 
 
 

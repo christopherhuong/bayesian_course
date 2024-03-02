@@ -1,0 +1,440 @@
+---
+title: "homework_6"
+author: "Christopher Huong"
+date: "2024-03-02"
+output: html_document
+---
+
+```{r, warning=F,message=F}
+library(rethinking)
+library(knitr)
+library(dagitty)
+```
+
+
+# 6E1. List three mechanisms by which multiple regression can produce false inferences about causal effects. \
+
+Multicollinearity) Including variables that are highly associated conditional on other model variables (and thus redundant) in a multiple regression may suppress true causal effects \
+
+Post-treatment bias) Including variables that are caused by the treatment will suppress the estimated effect of the treatment, because the information provided by the mechanism of the treatment is partialled out. \
+
+
+Collider bias) Including a collider in the model as a predictor can induce a spurious association between that predictor and the dependent variable, when no causal relationship exists. \
+
+***
+
+# 6E2. For one of the mechanisms in the previous problem, provide an example of your choice, perhaps from your own research. 
+
+
+```{r}
+set.seed(1)
+n = 1000
+diet <- rlnorm(n, 0, 0.5) #kcal deficit per day
+coca <- rexp(n, 1) #snorts of cocaine per day
+weightloss <- rnorm(n, (diet+coca+5), .5) #weight loss (lbs) per week
+
+
+```
+
+```{r}
+d <- data.frame(diet=standardize(diet), coca=standardize(coca), weightloss=standardize(weightloss))
+                
+cor(d)
+
+summary(d)
+```
+
+
+```{r}
+m1 <- quap(
+  alist(
+    coca ~ dnorm(mu, sigma),
+    mu <- a + b_diet*diet + b_weightloss*weightloss,
+    a ~ dnorm(0, 0.2),
+    b_diet ~ dnorm(0, 0.5),
+    b_weightloss ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+  ),data=d
+)
+```
+
+```{r}
+precis(m1)
+```
+
+The model estimates a negative effect of diet on cocaine use, when no such causal effect actually exists. This demonstrates collider bias, as weightloss is a common cause of diet and cocaine use and was conditioned on in this model.
+
+***
+
+# 6E3. List the four elemental confounds. Can you explain the conditional dependencies of each? \
+
+The fork: X <- Z -> Y \
+Z is a common cause of X and Y, thus X is conditionally independent of Y given Z \
+The pipe: X -> Z -> Y \
+X effects Y through Z, thus X and Z are conditionally independent given Z \
+Collider: X -> Z <- Y \
+Z is a common cause of X and Y, thus X and Y are conditionally dependent given Z \
+Descendent: X -> Z <- Y,  Z -> D \
+Z is a common cause of X and Y, and D is a cause of Z. Thus conditioning on D weakly conditions on Z, inducing a spurious association between X and Y
+
+***
+
+# 6E4. How is a biased sample like conditioning on a collider? Think of the example at the open of the chapter. \
+
+If Z is influenced by 2 independent varriables (X -> Z <- Y) \
+selecting from certain values of Z (i.e., a biased sample) will result in an association between the 2 variables in the sample.
+
+***
+
+# 6M1. Modify the DAG on page 186 to include the variable V, an unobserved cause of C and Y: C ← V → Y. Reanalyze the DAG. How many paths connect X to Y? Which must be closed? Which variables should you condition on now? \
+
+1) X <- U <- A -> C -> Y   (open) \
+2) X <- U <- A -> C <- V -> Y (C = collider -> closed) \
+3) X <- U -> B <- C <- V -> Y (B and C = colliders -> closed) \
+4) X <- U -> B <- C -> Y (B = collider -> closed) \
+
+Therefore just need to condition on A, and should not condition on B or C
+
+***
+
+# 6M2. Sometimes, in order to avoid multicollinearity, people inspect pairwise correlations among predictors before including them in a model. This is a bad procedure, because what matters is the conditional association, not the association before the variables are included in the model. To highlight this, consider the DAG X → Z → Y. Simulate data from this DAG so that the correlation between X and Z is very large. Then include both in a model prediction Y. Do you observe any multicollinearity? Why or why not? What is different from the legs example in the chapter? \
+
+DAG: X -> Z -> Y \
+
+```{r}
+set.seed(1)
+X <- rnorm(n, 0, 1)
+Z <- rnorm(n, X, .5)
+Y <- rnorm(n, Z, 1)
+```
+
+```{r}
+d2 <- data.frame(X=X, Z=Z, Y=Y)
+cor(d2)
+```
+
+```{r}
+m2 <- quap(
+  alist(
+    Y ~ dnorm(mu, sigma),
+    mu <- a + bZ*Z + bX*X,
+    a ~ dnorm(0, 0.2),
+    c(bZ, bX) ~ dnorm(0, .5),
+    sigma ~ dexp(1)
+  ),
+  data=d2
+)
+precis(m2)
+```
+
+No multicollinearity was observed as Y was not causally related to both X and Z. The correlation between X and Y was through Z, thus including X and Z in the model partials out the influence of Z on Y, leaving no association between X on Y. In the leg example, each leg were a function of height, and thus both causally related to height.
+
+***
+
+# 6M3. Learning to analyze DAGs requires practice. For each of the four DAGs below, state which variables, if any, you must adjust for (condition on) to estimate the total causal influence of X on Y. \
+
+
+Left to right, top down\
+
+1) Condition on A and Z (common influences of X and Y) \
+2) None. No open door from A to X, and Z is a collider \
+3) None. No open door from A to Y, and Z is a collider \
+4) Condition on A (common influence of X and Y). No open door from Z to X
+
+
+***
+
+# 6H1. Use the Waffle House data, data(WaffleDivorce), to find the total causal influence of number of Waffle Houses on divorce rate. Justify your model or models with a causal graph \
+
+```{r}
+data("WaffleDivorce"); d3 <- WaffleDivorce
+```
+
+
+```{r}
+d3 <- d3[, c("MedianAgeMarriage", "Marriage", "Divorce", "WaffleHouses", "South")]
+
+colnames(d3) <- c("A", "M", "D", "W", "S")
+for (i in c("A", "M", "D", "W", "S")) d3[[i]] <- standardize(d3[[i]])
+```
+
+Proposed DAG: \
+
+W <- S -> A\
+D <- A -> M <- S\
+
+Waffle houses are more common in the south.\
+Lower age of marriage, and higher marriage rates associated with the South due to culture \
+Lower age of marriage causes higher marriage rates because there are more opportunities to marry (and remarry) if people tend to start younger. Lower age of marriage is also associated with divorce rate, because there is less probability the marriage was carefully thought out.
+
+
+```{r}
+dag <- dagitty("dag{
+               W <- S -> A;
+               D <- A -> M <- S}")
+
+drawdag(dag)
+```
+
+# 6H2. Build a series of models to test the implied conditional independencies of the causal graph you used in the previous problem. If any of the tests fail, how do you think the graph needs to be amended? Does the graph need more or fewer arrows? Feel free to nominate variables that aren’t in the data
+
+
+```{r}
+impliedConditionalIndependencies(dag)
+```
+1) S is a common cause of W and A \
+2) A is a common cause of D and M \
+3) A is a mediator of S on D \
+4) S is a common cause of W and D (via a pipe) \
+5) You can also condition on the pipe (A) to block the path from D to W \
+6) S is a common cause of M and W
+
+
+Test all these implied conditional independencies
+```{r}
+# A ~ W + S
+ici1 <- quap(alist(
+  A ~ dnorm(mu, sigma),
+  mu <- a + bW*W + bS*S,
+  a ~ dnorm(0,0.2),
+  c(bW, bS) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+), data=d3)
+
+# D ~ M + A
+ici2 <- quap(alist(
+  D ~ dnorm(mu, sigma),
+  mu <- a + bM*M + bA*A,
+  a ~ dnorm(0, 0.2),
+  c(bM, bA) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d3)
+
+# D ~ S + A
+ici3 <- quap(alist(
+  D ~ dnorm(mu, sigma),
+  mu <- a + bS*S + bA*A,
+  a ~ dnorm(0, 0.2),
+  c(bS, bA) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d3)
+
+# D ~ W + S
+ici4 <- quap(alist(
+  D ~ dnorm(mu, sigma),
+  mu <- a + bW*W + bS*S,
+  a ~ dnorm(0, 0.2),
+  c(bW, bS) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d3)
+
+# D ~ W + A
+ici5 <- quap(alist(
+  D ~ dnorm(mu, sigma),
+  mu <- a + bW*W + bA*A,
+  a ~ dnorm(0, 0.2),
+  c(bW, bA) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d3)
+
+# M ~ W + S
+ici6 <- quap(alist(
+  M ~ dnorm(mu, sigma),
+  mu <- a + bW*W + bS*S,
+  a ~ dnorm(0, 0.2),
+  c(bW, bS) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d3)
+
+```
+
+```{r}
+impliedConditionalIndependencies(dag)
+```
+
+```{r}
+ici_list <- list(ici1, ici2, ici3, ici4, ici5, ici6)
+
+lapply(ici_list, function(a) precis(a))
+```
+1) True; no effect of W on A given S \
+2) True; no effect of M on D given A \
+3) Maybe; seems to be some small effect of S on D given A \
+4) True; no effect of W on D given S \
+5) Maybe; seems to be some small effect of W on D given A \
+6) True; no effect of W on M given S \
+
+Overall, the conditional dependencies implied by the causal model (DAG) seem to mostly supported by the data \
+
+
+
+```{r}
+adjustmentSets(dag, exposure="W", outcome="D")
+```
+Condition on A or S to estimate the causal effect of Wafflehouses on divorce
+
+```{r}
+m3 <- quap(
+  alist(
+    D ~ dnorm(mu, sigma),
+    mu <- a + bW*W + bA*A,
+    a ~ dnorm(0, 0.2),
+    c(bW, bA) ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+  ),
+  data=d3)
+precis(m3)
+```
+
+Conditioning on A reveals no causal effect of W on D
+
+```{r}
+m4 <- quap(
+  alist(
+    D ~ dnorm(mu, sigma),
+    mu <- a + bW*W + bS*S,
+    a ~ dnorm(0, 0.2),
+    c(bW, bS) ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+  ),
+  data=d3)
+precis(m4)
+```
+Conditioning on S reveals a neglible causal effect of W on D
+
+
+***
+
+
+# 6H3. Use a model to infer the total causal influence of area on weight. Would increasing the area available to each fox make it heavier (healthier)? You might want to standardize the variables. Regardless, use prior predictive simulation to show that your model’s prior predictions stay within the possible outcome range
+
+
+```{r}
+rm(list=ls())
+data("foxes"); d <- foxes
+```
+
+Standardize continuous variables
+```{r}
+for (i in c("avgfood", "groupsize", "area", "weight")){d[[i]] <- standardize(d[[i]])}
+summary(d)
+```
+Draw given DAG
+
+```{r}
+dag2 <- dagitty("dag{
+               area -> avgfood -> weight <- groupsize
+               avgfood -> groupsize
+               }")
+
+drawdag(dag2)
+```
+
+The total causal effect of area on weight will include avgfood and groupsize. There are no observed confounders that must be conditioned on.
+```{r}
+m5 <- quap(alist(
+  weight ~ dnorm(mu, sigma),
+  mu <- a + bA*area,
+  a ~ dnorm(0, 0.2),
+  bA ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d)
+precis(m5)
+```
+
+No total causal effect of area on weight.
+
+***
+
+# 6H4. Now infer the causal impact of adding food to a territory. Would this make foxes heavier? Which covariates do you need to adjust for to estimate the total causal influence of food?
+
+
+To estimate the direct causal effect of avgfood to weight, we need to control for the indirect effect through groupsize. Since we are estimating the total causal effect, there is no need to control for groupsize.
+
+```{r}
+m6 <- quap(alist(
+  weight ~ dnorm(mu, sigma),
+  mu <- a + bF*avgfood,
+  a ~ dnorm(0, 0.2),
+  bF ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d)
+
+precis(m6)
+```
+There seems to be no total causal effect of avgfood on weight, though this may be masked through the indirect effect of groupsize.
+
+***
+
+# 6H5. Now infer the causal impact of group size. Which covariates do you need to adjust for? Looking at the posterior distribution of the resulting model, what do you think explains these data? That is, can you explain the estimates for all three problems? How do they go together? \
+
+To infer the causal effect of groupsize on weight, we need to control for avgfood, which is a common cause of groupsize and avgfood, and thus a confounder. 
+
+```{r}
+m7 <- quap(alist(
+  weight ~ dnorm(mu, sigma),
+  mu <- a + bG*groupsize + bF*avgfood,
+  a ~ dnorm(0, 0.2),
+  c(bG, bF) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d)
+
+precis(m7)
+```
+
+We estimate a negative direct causal effect of groupsize on weight. To explain these results, lets look at the direct effect of avgfood on groupsize
+
+Lets look at the direct effect of 
+```{r}
+m8 <- quap(alist(
+  groupsize ~ dnorm(mu, sigma),
+  mu <- a + bF*avgfood,
+  a ~ dnorm(0, 0.2),
+  bF ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),
+data=d)
+
+precis(m8)
+```
+There is a large positive effect of avgfood on groupsize, and a medium positive effect of avg food on groupsize, which in turn has a medium negative effect on weight. Thus, the indirect path from avgfood to weight through groupsize is a masking effect.
+
+
+***
+
+# 6H6. Consider your own research question. Draw a DAG to represent it. What are the testable implications of your DAG? Are there any variables you could condition on to close all backdoor paths? Are there unobserved variables that you have omitted? Would a reasonable colleague imagine additional threats to causal inference that you have ignored?
+
+
+A hypothesized causal graph among depression symptoms. 
+
+
+```{r}
+rm(list=ls())
+dag <- dagitty("dag{
+               insomnia -> fatigue -> sad
+               fatigue -> concentration -> anhedonia -> sad
+               
+               }")
+
+drawdag(dag)
+```
+
+```{r}
+impliedConditionalIndependencies(dag)
+```
+1) concentration mediates the effect of fatigue on anhedonia \
+2 & 3) fatigue & concentration mediates the effect of insomnia on anhedonia \
+4) fatigue mediates the effect of insomnia on concentration \
+5) anhedonia mediates the effect of concentration on sadness.  fatigue is a common cause of concentration and sadness \
+6) fatigue mediates the effect of insomnia on sadness
+
+
+There are very likely to be unobserved confounders, such as physical illness causing fatigue & concentration issues. A colleague would point out the many potential unobserved confounders and colliders, and that the acyclic assumption is almost certainly violated in reality.
+
+
+
+
+
+
+
+

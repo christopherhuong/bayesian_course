@@ -1,0 +1,527 @@
+---
+title: "midterm"
+author: "Christopher Huong"
+date: "2024-03-14"
+output: html_document
+---
+
+```{r, warning=F, message=F}
+library(dagitty)
+library(rethinking)
+library(dplyr)
+library(splines)
+library(ggplot2)
+```
+
+
+# Question 1 \
+
+# 1 Conscientiousness; Exam time; Homework scores \
+
+
+As conscientiousness (C) is a relatively stable personality trait, we can assume no causal paths enter C. Given that C predicts GPA, we can posit a path from C to homework score (HW), probably due to more time spent on the course overall. Higher homework scores indicate understanding of the material, which would lead to faster exam times (EX). Thus we can hypothesize a causal path from HW to EX.
+
+
+
+This gives us the DAG:
+
+```{r}
+dag1 <- dagitty( "dag{
+C -> HW -> EX }" )
+
+drawdag(dag1)
+```
+
+
+
+
+```{r}
+impliedConditionalIndependencies(dag1)
+```
+
+
+# 2 \
+
+For the first DAG; Assuming all variables are standardized \
+
+HW ~ N(mu, sigma) \
+mu = a + b1 * C \
+
+
+
+EX ~ N(mu, sigma) \
+mu = a + b2 * HW \
+
+
+
+# 3 & 4
+```{r}
+d1 <- read.csv("HuongIER.csv")
+d1$C <- standardize(d1$Conscientiousness)
+d1$HW <- standardize(d1$Homework)
+d1$EX <- standardize(d1$Duration)
+```
+
+```{r}
+
+m1 <- quap(alist(
+  # HW <- C
+  HW ~ dnorm(mu_HW, sigma_HW),
+  mu_HW <- a_HW + b1*C,
+  a_HW ~ dnorm(0, 0.2),
+  b1 ~ dnorm(0, 0.5),
+  sigma_HW ~ dexp(1),
+  
+  # EX <- HW
+  EX ~ dnorm(mu_EX, sigma_EX),
+  mu_EX <- a_EX + b2*HW,
+  a_EX ~ dnorm(0, 0.2),
+  b2 ~ dnorm(0, 0.5),
+  sigma_EX ~ dexp(1)
+  
+ ),data=d1)
+```
+
+```{r}
+precis(m1)
+```
+
+
+The coefficients support the hypothesis, with a large positive association between C and HW (b1=0.95, 89% CI: 0.87 to 1.03), and large negative association between HW and EX (b2=-0.79, 89% CI: -0.95 to -0.63). We can also test the conditional independency implied by the DAG
+
+
+* CI = credibility interval of the posterior
+
+
+
+
+```{r}
+m2 <- quap(alist(
+  # EX ~ C + HW
+  EX ~ dnorm(mu, sigma),
+  mu <- a + bC*C + bHW*HW,
+  a ~ dnorm(0, 0.2),
+  c(bC, bHW) ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+),data=d1)
+```
+
+```{r}
+precis(m2)
+```
+
+The zero-order correlation matrix:
+```{r}
+d1 %>% select(C, HW, EX) %>% cor()
+```
+
+It seems the strong negative correlation between C and EX is explained by HW, as evidenced by the uncertainty of the posterior distribution of the bC slope in the multiple regression.
+
+
+Thus, the proposed DAG is supported by the data.
+
+
+***
+
+
+# Question 1
+
+```{r}
+rm(list=ls())
+d2 <- read.csv("HuongYerkes.csv")
+str(d2)
+
+d2$M <- standardize(d2$Motivation)
+d2$S <- standardize(d2$Score)
+d2$M_sq <- d2$M^2
+
+```
+
+
+
+
+We will test and compare a linear model, a quadratic model, and a spline while using regularizing (narrow) priors to reduce risk of overfitting \
+
+
+Linear model: \
+
+S ~ N(mu, sigma) \
+mu = a + b * M \
+
+
+
+Quadratic model: \
+S ~ N(mu, sigma) \
+mu = a + b1*M + b2*M^2 \
+
+
+
+B-Spline: \
+S ~ N(mu, sigma) \
+mu = a + summation k=1 to k ( w(k) * b(k,i) )
+
+
+# Q2 & Q3
+
+
+Model syntax 
+
+```{r}
+lm <- quap(alist(
+  S ~ dnorm(mu, sigma),
+  mu <- a + b*M,
+  a ~ dnorm(0, 0.2),
+  b ~ dnorm(0, 0.2),
+  sigma ~ dexp(1)
+),data=d2)
+
+
+qm <- quap(alist(
+  S ~ dnorm(mu, sigma),
+  mu <- a + b*M + b_2*M_sq,
+  a ~ dnorm(0, 0.2),
+  c(b, b_2) ~ dnorm(0, 0.2),
+  sigma ~ dexp(1)
+),data=d2)
+
+
+
+num_knots <- 5
+knot_list <- quantile(d2$M, probs=seq(0, 1, length.out=5))
+
+
+B <- bs(d2$M,
+        knots = knot_list[-c(1, num_knots)],
+        degree=3, intercept=T)
+
+sm <- quap(
+  alist(
+    S ~ dnorm(mu, sigma), 
+    mu <- a + B %*% w,
+    a ~ dnorm(0, 0.2),
+    w ~ dnorm(0, 5),  #influences wigglyness
+    sigma ~ dexp(1)
+  ),data=list(S=d2$S, B=B),
+  start=list(w=rep(0, ncol(B)))
+)
+```
+
+
+Plot data and inspect results
+
+
+```{r}
+plot(x=d2$Motivation, y=d2$Score)
+```
+
+
+
+```{r}
+precis(lm)
+```
+Conditional on the linear model and data, 89% of the posterior probability infers a regression slope coefficient between -0.45 and -0.07.
+
+
+Plot posterior predictions of the linear model against the data
+
+```{r}
+# extract samples from the posterior probability distribution
+lm_post <- extract.samples(lm, n=10000)
+# link function to generate a distribution of mu values for each value of M
+mu.link <- function(M) lm_post$a + lm_post$b*M
+# new horizontal axis to plot posterior predictions
+m.seq <- seq(from=-1.7, to=1.7, length.out=30)
+# apply link function to new horizontal axis of M values
+mu <- sapply(m.seq , mu.link)
+# distribution of posterior mu values of S for 30 values of M
+
+# summarize the posterior predictions with mean and 89% percentile intervals
+mu.mean <- apply(mu, 2, mean)
+mu.PI <- apply(mu, 2, PI, prob=0.89)
+
+# simulate Score values for each value of M, and get 89% PI
+sim.scores <- sim(lm, data=list(M=m.seq))
+scores.PI <- apply(sim.scores, 2, PI, prob=0.89)
+# plot posterior predictions of mu, and simulated Scores again raw data
+plot(S~M, data=d2, col=rangi2)
+lines(m.seq, mu.mean)
+shade(mu.PI, m.seq)
+shade(scores.PI, m.seq)
+```
+
+The bulk of the posterior predictive distribution describes a negative slope. The regression slopes seem to reliably underestimate Scores for (standardized) Motivation values of -0.5. Further, 4 data points lie outside the 89% probability interval for simulated scores
+
+
+
+Now for quadratic model
+
+```{r}
+precis(qm)
+```
+Not sure if the coefficients are interpretable. Let's just plot
+
+```{r}
+
+qm_post <- extract.samples(qm, n=10000)
+pred_dat <- list(M=m.seq, M_sq=m.seq^2)
+mu.link <- function(M) qm_post$a + qm_post$b*M + qm_post$b_2*M^2
+mu <- sapply(m.seq , mu.link)
+
+
+mu.mean <- apply(mu, 2, mean)
+mu.PI <- apply(mu, 2, PI, prob=0.89)
+
+
+sim.scores <- sim(qm, data=pred_dat)
+scores.PI <- apply(sim.scores, 2, PI, prob=0.89)
+# plot posterior predictions of mu, and simulated Scores again raw data
+plot(S~M, data=d2, col=rangi2)
+lines(m.seq, mu.mean)
+shade(mu.PI, m.seq)
+shade(scores.PI, m.seq)
+
+
+```
+
+
+Does not look too different from the linear model. The same 4 points lie outside the 89% interval of simulated Scores.
+
+
+
+Now for the spline model \
+
+Plot weights for basis functions
+
+```{r}
+sm_post <- extract.samples(sm, n=10000)
+
+w <- apply(sm_post$w , 2 , mean )
+plot( NULL , xlim=range(d2$M) , ylim=c(-1,1) ,
+xlab="Motivation" , ylab="basis * weight" )
+for ( i in 1:ncol(B) ) lines( d2$M , w[i]*B[,i] )
+```
+
+
+Plot spline
+
+```{r}
+mu <- link(sm)
+mu_PI <- apply(mu,2,PI,0.89)
+plot(d2$M , d2$S , col=col.alpha(rangi2,0.3) , pch=16 )
+shade(mu_PI, d2$M, col=col.alpha("black",0.5) )
+
+```
+
+# Compare the predictive accuracy between models
+
+
+
+Predictive accuracy is assessed by the average log-probability of a model to estimate relative divergence from the "true" data generating model. The average log-probability is estimated by summing the models log-probability of each observation. \
+
+To compute this for a Bayesian model, we calculate the log pointwise predictive density (lppd): \
+
+First, we compute log=probabilities for each observation: \
+
+1) Draw 10,000 samples for each parameter from the posterior probability distribution. \
+
+2) Use those 10,000 parameter samples to estimate 10,000 (standardized) Score values for each 40 observed value of (standardized) Motivation using the model specification relating Motivation to Score (linear, quadratic, spline).  \
+
+3) Return log-probabilities of each simulated observation (conditional on the model) \
+
+4) Prepare data for plotting \
+```{r}
+logprob_lm <- sim(lm, ll=T, n=1e4)
+logprob_lm_plot <- data.frame(
+  observation = as.factor(seq(1:40)),
+  means = apply(logprob_lm, 2, mean),
+  sd = apply(logprob_lm, 2, sd)
+)
+  
+  
+logprob_qm <- sim(qm, ll=T, n=1e4)
+logprob_qm_plot <- data.frame(
+  observation = as.factor(seq(1:40)),
+  means = apply(logprob_qm, 2, mean),
+  sd = apply(logprob_qm, 2, sd)
+)
+
+
+logprob_sm <- sim(sm, ll=T, n=1e4)
+logprob_sm_plot <- data.frame(
+  observation = as.factor(seq(1:40)),
+  means = apply(logprob_sm, 2, mean),
+  sd = apply(logprob_sm, 2, sd)
+)
+```
+
+Plot simulated log-probabilities (points = mean, bars = standard deviations) of each observed Score
+```{r}
+
+logprob_plot <- function(logprob_d) {
+  ggplot(logprob_d, aes(x = observation, y = means)) +
+   geom_point() +
+   geom_errorbar(aes(ymin = means - sd, ymax = means + sd), width = 0.2) +  
+    geom_point(aes(y = d2$S), color = "red", size = 2, shape = 1) +
+    labs(x = "observation", y = "log-probability") +  
+    ylim(-5, 3) +
+    theme_minimal() + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+}
+
+```
+
+```{r}
+logprob_plot(logprob_lm_plot)
+logprob_plot(logprob_qm_plot)
+logprob_plot(logprob_sm_plot)
+```
+
+Resume computing lppd
+```{r}
+n <- 40 
+ns <- 10000
+
+
+# for the 10,000 simulated log-probabilities of each observation (conditional on the model), exponentiate each value, sum them, then take the log. subtract the log of the sample size from each (this divides the sum by the number of samples)
+
+lppd_func <- function(i, logprob_d) {
+  log_sum_exp(logprob_d[, i]) - log(ns)
+}
+```
+
+Apply the function to compute lppd for each model (equivalent results to lppd() )
+```{r}
+sapply(1:n, function(i) lppd_func(i, logprob_lm)) |> sum()
+
+sapply(1:n, function(i) lppd_func(i, logprob_qm)) |> sum()
+
+sapply(1:n, function(i) lppd_func(i, logprob_sm)) |> sum()
+```
+The lppd score computed from training data improves with model complexity. Ideally, the lppd for each model can be computed for data the model was not trained on, and those scores can be compared to rank models by predictive accuracy. Information criterion and cross-validation are techniques to estimate this hypothetical out-of-sample lppd/deviance score.
+
+
+
+
+Cross-validation re-fits the model on subsets of the data, and computes lppd (or deviance? I don't see a -2 multiplier in the formula, yet the magnitudes are very similar to WAIC which does estimate deviance) scores of each model on the observations that were left out. The lppd is then averaged for a final out-of-sample predictive accuracy estimate  \
+
+
+PSIS approximates a LOOCV score without having to refit the model by weighing observations by their relative likelihood. 
+
+
+```{r}
+compare(lm, qm, sm, func=PSIS)
+```
+Also can plot
+```{r}
+plot(compare(lm, qm, sm, func=PSIS))
+```
+
+
+The models are not reliably different in their predictive accuracy according to PSIS, given the largest dPSIS value is smaller than its corresponding dSE value (the standard error of the difference is larger than the difference itself). Though as expected, the penalty term (pPSIS) increases with model complexity \
+Some outliers may be disproportionately contributing to overfitting, and thus reduced predictive accuracy. We can inspect these with by specifying pointwise=T 
+
+
+```{r}
+PSIS_lm <- PSIS(lm, pointwise=T)
+print(PSIS_lm)
+
+PSIS_qm <- PSIS(qm, pointwise=T)
+print(PSIS_qm)
+
+PSIS_sm <- PSIS(sm, pointwise=T)
+print(PSIS_sm)
+```
+
+Each model has identified different points as outliers. We will flag all points over 0.50 across models and highlight these in a plot.
+
+
+
+```{r}
+d2$outlier_lm <- ifelse(PSIS_lm$k > 0.5, 1, 0)
+d2$outlier_qm <- ifelse(PSIS_qm$k > 0.5, 1, 0)
+d2$outlier_sm <- ifelse(PSIS_sm$k > 0.5, 1, 0)
+d2$outlier <- rowSums(d2[, c("outlier_lm", "outlier_qm", "outlier_sm")])
+d2$outlier <- d2$outlier |> as.factor()
+```
+
+Plot raw standardized data, and color code by how many models a point has been identified as an outlier in (0-3).
+
+```{r}
+ggplot(d2, aes(x=M, y=S, color=outlier)) +
+  geom_point() +
+  labs(x = "Motivation (standardized)", y = "Score (standardized)") +
+  scale_color_manual(values = c("0"="black", "1"="green", "2"="orange", "3"="red")) +
+  theme_minimal()
+```
+
+
+This helps visualize which points in the data are most contributing to overfitting.
+
+
+***
+
+
+Information criterion estimates the out-of-sample deviance by considering the complexity of the model in a penalty term (in AIC, that is the number of parameters). In WAIC, the penalty term is defined by the variance in log-probabilities of each observation, given the model.
+
+
+
+
+```{r}
+compare(lm, qm, sm, func=WAIC)
+```
+
+The models are not reliably different in terms of predictive accuracy, using the WAIC. The PSIS and WAIC results converge, suggesting these results are reliable.
+
+
+
+In conclusion, of the 3 models compared, the quadratic model *might* have the best predictive accuracy, but if so, not by much. Thus, there is no support for the inverted-U shape of Performance ~ Motivation, as the quadratic model does not reliably outperform the linear model.
+
+
+
+***
+
+# Question 3 
+
+## Explain Bayes Rule. \
+
+
+Bayes theorem: P(A|B) = P(B|A) * P(A)  / P(B) 
+
+
+In the context of Bayesian statistics, Bayes rule provides the logical way to update a model's probability distributions (i.e., your initial hypothesis) based on new evidence. The model initially has a prior probability distribution which, represents your initial belief about the world (a hypothesis; P(H)). The upon observing new data, you update your model accordingly. \
+
+
+The posterior distribution, P(A|B), is the product of the likelihood of the data given the prior distribution, and the prior distribution, over the average probability of the data.
+
+
+
+
+
+## What does McElreath mean when he distinguishes between small-world and large-world? 
+
+
+My interpretation of what McElreath means when he distinguishes between small-world and large-world is analagous to the map versus the territory. The territory / large-world refers to nature, in all her complexity, down to the last subatomic particle. The map / small-world refers to models of nature, which we use to simplify a particular set of phenomena, facilitating comprehension and prediction, and thus informing decision making. \
+
+
+## Give an example of the distinction between small-world and large-world based on your area of research interest.
+
+
+An example of this can be found in psychiatric diagnosis and nosology. The phenomena we call 'mental disorders' refers to a wide and heterogeneous range and collection of experiences and behaviors that revolve around subjective suffering (and many times associated with physiological degradation or neurological dysfunction). \
+These collections of experiences can have complex and diverse phenomenologies, behavioral manifestations, causes, risk factors, severities, interpretations, and timescales. Yet, to facilitate understanding through research, and ultimately treatment, we deploy a simplified diagnostic system to categorize these experiences. The reality of individual suffering and dysfunction constitute the large-world of mental disorders, and the constructed classification system of the DSM constitute the small-world.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

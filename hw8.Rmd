@@ -1,0 +1,362 @@
+---
+title: "hw8"
+author: "Christopher Huong"
+date: "2024-03-27"
+output: html_document
+---
+
+
+## 8E1. For each of the causal relationships below, name a hypothetical third variable that would lead to an interaction effect.\
+
+(1) Bread dough rises because of yeast.\
+- Ambient emperature \
+(2) Education leads to higher income.\
+- Degree type (negative slope for gender or ethnic studies)\
+(3) Gasoline makes a car go.\
+- Condition on whether it's a Tesla or not
+
+***
+
+## 8E2. Which of the following explanations invokes an interaction?\
+
+(1) Caramelizing onions requires cooking over low heat and making sure the onions do not dry out.\
+
+Carmelization ~ heat * moisture \
+The *and* means both conditions need to be met for either to effect carmelization\
+
+
+(2) A car will go faster when it has more cylinders or when it has a better fuel injector.\
+
+Car_speed ~ cylinders + fuel_injector\
+
+(3) Most people acquire their political beliefs from their parents, unless they get them instead from their friends.\
+
+Poli_beliefs ~ parents_or_friends \
+parents_or_friends is a 2 level factor\
+
+
+(4) Intelligent animal species tend to be either highly social or have manipulative appendages (hands, tentacles, etc.). \
+
+animal_iq ~ social + has_appendages \
+Where has_appendages is a 2 level factor\
+
+Only (1) is an interaction effect
+
+
+***
+
+
+8E3. For each of the explanations in 8E2, write a linear model that expresses the stated relationship \
+
+Ok \
+
+***
+
+## 8M1. Recall the tulips example from the chapter. Suppose another set of treatments adjusted the temperature in the greenhouse over two levels: cold and hot. The data in the chapter were collected at the cold temperature. You find none of the plants grown under the hot temperature developed any blooms at all, regardless of the water and shade levels. Can you explain this result in terms of interactions between water, shade, and temperature? \
+
+
+Blooms ~ Water + Shade + Water * Shade * Temp\
+The effect of water and shade is conditional on temperature\
+
+
+***
+
+## 8M2. Can you invent a regression equation that would make the bloom size zero, whenever the temperature is hot? \
+
+
+Blooms ~ a + Water + Shade + Water * Shade * (1-Temp)\
+
+
+Temp = 0 = cold \
+Temp = 1 = hot \
+
+***
+
+## 8H1. Return to the data(tulips) example in the chapter. Now include the bed variable as a predictor in the interaction model. Don’t interact bed with the other predictors; just include it as a main effect. Note that bed is categorical. So to use it properly, you will need to either construct dummy variables or rather an index variable, as explained in Chapter 5.\
+
+```{r, warning=F,message=F}
+library(rethinking)
+
+```
+
+```{r}
+data(tulips); d <- tulips; rm(tulips)
+d$blooms_std <- d$blooms / max(d$blooms) #scale by maximum
+d$water_cent <- d$water - mean(d$water) #center at 0
+d$shade_cent <- d$shade - mean(d$shade) #center at 0
+```
+
+Since bed is a factor, give it an index variable allowing the slope to condition on different levels of bed. Same as the Africa example
+```{r}
+m1 <- quap(
+  alist(
+    blooms_std ~ dnorm(mu, sigma),
+    mu <- a[bed] + bw*water_cent + bs*shade_cent + bws*water_cent*shade_cent,
+    a[bed] ~ dnorm(0.5, 0.25),
+    c(bw, bs, bws) ~ dnorm(0, 0.25),
+    sigma ~ dexp(1)
+  ),data=d
+)
+```
+
+```{r}
+precis(m1,depth=2)
+```
+
+***
+
+## 8H2. Use WAIC to compare the model from 8H1 to a model that omits bed. What do you infer from this comparison? Can you reconcile the WAIC results with the posterior distribution of the bed coefficients?
+
+
+
+```{r}
+m2 <- quap(
+  alist(
+    blooms_std ~ dnorm(mu, sigma),
+    mu <- a + bw*water_cent + bs*shade_cent + bws*water_cent*shade_cent,
+    a ~ dnorm(0.5, 0.25),
+    c(bw, bs, bws) ~ dnorm(0, 0.25),
+    sigma ~ dexp(1)
+  ),data=d
+)
+```
+
+```{r}
+precis(m2)
+```
+
+The effects of water, shade, and their interaction are the same in both models. This is by model design, since we did not allow those effects to be conditional on bed. There does seem to be meaningful differences in average blooms by levels of bed (a is reliably different from b and c)
+
+```{r}
+compare(m1, m2, func=WAIC)
+```
+
+The model with bed seems to have superior predictive accuracy. THis is not suprising given the reliable differences in blooms across bed a with beds b and c. The difference is small though, problem because bed was randomly assigned, and thus correlates with no predictors.
+
+
+***
+
+## 8H5. Consider the data(Wines2012) data table. These data are expert ratings of 20 different French and American wines by 9 different French and American judges. Your goal is to model score, the subjective rating assigned by each judge to each wine. I recommend standardizing it. In this problem, consider only variation among judges and wines. Construct index variables of judge and wine and then use these index variables to construct a linear regression model. Justify your priors. You should end up with 9 judge parameters and 20 wine parameters. How do you interpret the variation among individual judges and individual wines? Do you notice any patterns, just by plotting the differences? Which judges gave the highest/lowest ratings? Which wines were rated worst/best on average?
+
+
+```{r}
+rm(list=ls())
+data("Wines2012"); d <- Wines2012; rm(Wines2012)
+d$score_std <- standardize(d$score)
+```
+
+score ~ judge + wine + judge * wine \
+Without knowing anything about the judge or wine, we would expect average scores for each level of judge + wine. Thus we have a prior centered at 0 (since score is standardized) that is relatively wide (~95% of the probability is placed within a 1 standard deviation difference between mu's, or something like that)
+
+```{r}
+m3 <- quap(
+  alist(
+    score_std ~ dnorm(mu, sigma),
+    mu <- a[judge] + b[wine],
+    a[judge] ~ dnorm(0, 0.5),
+    b[wine] ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+  ),data=d
+)
+```
+
+```{r}
+precis(m3,depth=2)
+```
+
+```{r}
+plot(precis(m3, depth = 2))
+```
+
+Judge 8 gave the lowest ratings on average(m=-0.67, 89%CI:-97 to -.37), though there are other judges with overlapping CI's. Judge 5 gave the highest ratings on average (m=0.81, 89%CI: .51 to 1.11), and again there are other judges with overlapping CI's. \
+
+Wine 18 was reliably lower rated than others (judging by width of 89%CI), but other than that no other wine seemed reliably different on average. \
+
+***
+
+## 8H6. Now consider three features of the wines and judges: \
+
+## (1) flight: Whether the wine is red or white. \
+
+## (2) wine.amer: Indicator variable for American wines. \
+
+## (3) judge.amer: Indicator variable for American judges.\
+
+## Use indicator or index variables to model the influence of these features on the scores. Omit the individual judge and wine index variables from Problem 1. Do not include interaction effects yet. Again justify your priors. What do you conclude about the differences among the wines and judges? Try to relate the results to the inferences in the previous problem.
+
+
+I like white wine more so I assume wine snobs would like it less. Thus I'll assign a slightly higher prior mean rating for reds. \
+I assume since american wineries are younger than european wineries, they're probably a bit worse on average. I also assume european judges are snobbier. Allow for wide uncertainty because I really don't know what I'm talking about. The priors reflect these beliefs.
+
+
+Also, since all factor levels are binary, we can code indicator variables as 0/1 integers without assigning a different prior to different levels of any factor (I think)
+
+```{r}
+str(d)
+d$flight <- ifelse(d$flight == "red", 0L, 1L)
+```
+
+score ~ flight(red=0, white=1) + wine.amer + judge.amer
+
+```{r}
+m4 <- quap(
+  alist(
+    score_std ~ dnorm(mu, sigma),
+    mu <- a + bF*flight + bW*wine.amer + bJ*judge.amer,
+    a ~ dnorm(0, 0.25), #mean levels of everything else, we assume mean score
+    bF ~ dnorm(-0.1, 0.5), #assume wine snobs like red better on average
+    bW ~ dnorm(-0.2, 0.5), #assume american wines are worse on average
+    bJ ~ dnorm(0.2, 0.5), #assume american judges are less snobby and rate wines higher on average
+    sigma ~ dexp(1)
+  ),data=d
+)
+```
+
+```{r}
+precis(m4)
+```
+
+```{r}
+plot(precis(m4))
+```
+
+No reliable difference between red and whites on average. American wines seem to score worse on average, but it's not a reliable difference. American judges did seem to give higher scores on average.
+
+
+Try with index variables
+```{r}
+# make index variables start from 1 because it gave a warning
+d$flight_id <- d$flight + 1L
+d$wine.amer_id <- d$wine.amer + 1L
+d$judge.amer_id <- d$judge.amer + 1L
+
+```
+
+
+```{r}
+m5 <- quap(
+  alist(
+    score_std ~ dnorm(mu, sigma),
+    mu <- a[flight_id] + b[wine.amer_id] + c[judge.amer_id],
+    a[flight_id] ~ dnorm(0, 0.5),
+    b[wine.amer_id] ~ dnorm(0, 0.5),
+    c[judge.amer_id] ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+  ),data=d
+)
+```
+
+```{r}
+precis(m5, depth=2)
+```
+Too many parameters compared to indicators. Compute contrasts using samples from the posterior probability distribution
+
+```{r}
+post <- extract.samples(m5, n=1e4)
+flight_diff <- post$a[, 2] - post$a[, 1] #white-red
+wine.amer_diff <- post$b[, 2] - post$b[, 1] #amer-euro 
+judge.amer_diff <- post$c[, 2] - post$c[, 1] #amer-euro
+```
+
+```{r}
+precis(flight_diff)
+```
+
+No diff between red and white
+
+```{r}
+precis(wine.amer_diff)
+```
+
+```{r}
+precis(judge.amer_diff)
+```
+
+Very similar estimates as indicator variable estimates
+
+
+***
+
+## 8H7. Now consider two-way interactions among the three features. You should end up with three different interaction terms in your model. These will be easier to build, if you use indicator variables. Again justify your priors. Explain what each interaction means. Be sure to interpret the model’s predictions on the outcome scale (mu, the expected score), not on the scale of individual parameters. You can use link to help with this, or just use your knowledge of the linear model instead. What do you conclude about the features and the scores? Can you relate the results of your model(s) to the individual judge and wine inferences from 8H5?
+
+
+Using indicator variables seems easier since they're binary
+
+```{r}
+m6 <- quap(
+  alist(
+    score_std ~ dnorm(mu, sigma),
+    mu <- a + bF*flight + bW*wine.amer + bJ*judge.amer + bFW*flight*wine.amer + bFJ*flight*judge.amer + bWJ*wine.amer*judge.amer,
+    a ~ dnorm(0, 0.25),
+    bF ~ dnorm(-0.1, 0.5), #assume wine snobs like red better on average
+    bW ~ dnorm(-0.2, 0.5), #assume american wines are worse on average
+    bJ ~ dnorm(0.2, 0.5), #assume american judges are less snobby and rate wines higher on average
+    c(bFW, bFJ, bWJ) ~ dnorm(0, 0.25), # no assumptions here
+    sigma ~ dexp(1)
+  ),data=d
+)
+
+```
+
+```{r}
+precis(m6)
+```
+```{r}
+plot(precis(m6))
+```
+
+
+Direct effect of red vs white wine indicates an unreliably lower mean rating for white.\
+
+Direct effect of american vs non american wine kinda indicates  lower scores for american wine. \
+
+Direct effect of american vs non american judge indicates a kinda reliably higher mean scores given by american judges. \
+
+Only the flight * wine.amer interaction term is kinda different from zero maybe. I don't know how to interpret it so I'll plot different slopes for score_std ~ flight for different levels of wine.amer. We specify a linear model with only flight*wine.amer term
+
+```{r}
+m7 <- quap(
+  alist(
+    score_std ~ dnorm(mu, sigma),
+    mu <- a + bF*flight + bW*wine.amer + bFW*flight*wine.amer,
+    a ~ dnorm(0, 0.25),
+    bF ~ dnorm(-0.1, 0.5), #assume wine snobs like red better on average
+    bW ~ dnorm(-0.2, 0.5), #assume american wines are worse on average
+    bFW ~ dnorm(0, 0.25), # no assumptions here
+    sigma ~ dexp(1)
+  ),data=d
+)
+```
+
+```{r}
+plot(precis(m7))
+```
+
+
+```{r}
+
+par(mfrow=c(1,2))
+plot(x=d$flight, y=d$score_std, xlab="flight, 0=red, 1=white", ylab="standardized score", main = "american wine")
+mu_american <- link(m7, data=data.frame(flight=c(0,1), wine.amer=1))
+for(i in 1:20) lines(0:1, mu_american[i,], col=col.alpha("black",0.3))
+
+plot(x=d$flight, y=d$score_std, xlab="flight, 0=red, 1=white", ylab="standardized score", main = "not american wine")
+mu_notamerican <- link(m7, data=data.frame(flight=c(0,1), wine.amer=0))
+for(i in 1:20) lines(0:1, mu_notamerican[i,], col=col.alpha("black",0.3))
+
+
+```
+
+There's slightly different trends, where white american wines are rated higher than red american wines, while european reds are rated higher than european whites.
+
+
+
+
+
+
+
+
+
+
+
+

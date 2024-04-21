@@ -1,0 +1,214 @@
+---
+title: "hw9"
+author: "Christopher Huong"
+date: "2024-04-02"
+output: html_document
+---
+
+
+# 9E3. Which sort of parameters can Hamiltonian Monte Carlo not handle? Can you explain why?
+
+
+Hamiltonian Monte Carlo cannot handle very flat, uninformative priors. This is because The algorithm will waste time visiting highly unprobable parameter spaces, and be unlikely to converge. \
+It also cannot handle discrete/categorical variables because it needs a continuous surface for the simulated frictionless particle to glide on.
+
+
+
+# 9E4. Explain the difference between the effective number of samples, n_eff as calculated by Stan, and the actual number of samples.
+
+
+The actual number of samples is the specified chain length (minus the warmup) which is the number of positions in the parameter space visited by the particle (when it stops). The effective number of samples is the chain length if there were no lag-1 autocorrelation between samples (parameters were samples indepedently of each other). Autocorrelated samples deceases the effective sample, because they are less informative than independent samples (since some information of one sample is already contained in the previous sample).
+
+
+
+# 9E5. Which value should Rhat approach, when a chain is sampling the posterior distribution correctly?
+
+
+Rhat is the ratio of total variance to the average within-chain variance. So when the total variance of all the chains equals the average within-chain variance, Rhat=1, and the chains are converging on the same range of parameter space, which is a good sign.
+
+
+# 9M1. Re-estimate the terrain ruggedness model from the chapter, but now using a uniform prior for the standard deviation, sigma. The uniform prior should be dunif(0,1). Use ulam to estimate the posterior. Does the different prior have any detectible influence on the posterior distribution of sigma? Why or why not?
+
+
+```{r,warning=F,message=F}
+library(rethinking)
+```
+
+
+```{r}
+data(rugged); d <- rugged; rm(rugged)
+
+d$log_gdp <- log(d$rgdppc_2000)
+dd <- d[complete.cases(d$rgdppc_2000), ]
+dd$log_gdp_std <- dd$log_gdp / mean(dd$log_gdp) #mean = 1
+dd$rugged_std <- dd$rugged / max(dd$rugged) #max = 1
+dd$cid <- ifelse(dd$cont_africa==1, 1, 2)
+
+d1 <- list(
+  log_gdp_std = dd$log_gdp_std,
+  rugged_std = dd$rugged_std,
+  cid = dd$cid
+)
+```
+
+```{r, warning=F,message=F}
+# sigma ~ dexp(1)
+m1 <- ulam(
+  alist(
+    log_gdp_std ~ dnorm(mu, sigma),
+    mu <- a[cid] + b[cid]*(rugged_std-0.215),
+    a[cid] ~ dnorm(1, 0.1),
+    b[cid] ~ dnorm(0, 0.3),
+    sigma ~ dexp(1)
+  ),data=d1, chains=4,cores=4
+)
+
+# sigma ~ dunif(0,1)
+m2 <- ulam(
+  alist(
+    log_gdp_std ~ dnorm(mu, sigma),
+    mu <- a[cid] + b[cid]*(rugged_std-0.215),
+    a[cid] ~ dnorm(1, 0.1),
+    b[cid] ~ dnorm(0, 0.3),
+    sigma ~ dunif(0, 1)
+  ),data=d1, chains=4,cores=4
+)
+
+
+```
+
+Compare parameter estimates
+
+```{r}
+precis(m1, 2)
+precis(m2, 2)
+```
+No difference, the likelihood overwhelms the priors. Also dunif(0,1) has all of its probability density between 0 and 1, and I think dexp(1) has most of its mass between 0 and 1
+
+
+```{r}
+fx <- function(x){ exp(1)^-x}
+integrate(fx, lower=0, upper=1)
+```
+Yep, most of the probability density for the exponential distribution with lambda=1 is between x=0 and x=1
+
+
+# 9M2. Modify the terrain ruggedness model again. This time, change the prior for b[cid] to dexp(0.3). What does this do to the posterior distribution? Can you explain it?
+
+
+```{r,message=F,warning=F}
+m3 <- ulam(
+  alist(
+    log_gdp_std ~ dnorm(mu, sigma),
+    mu <- a[cid] + b[cid]*(rugged_std-0.215),
+    a[cid] ~ dnorm(1, 0.1),
+    b[cid] ~ dexp(0.3),
+    sigma ~ dunif(0, 1)
+  ),data=d1, chains=4,cores=4
+)
+
+precis(m3, 2)
+```
+
+
+The estimates for a[cid] remained the same, which are the  differences in average GDP for African vs non-African countries. The estimates for b[cid] differ between models, with the initial models indicating that cid[1] (African countries) have a positive relationship between ruggedness and GDP (the author hypothesized this was due to less access by colonialists), while non-African countries have a negative relationship between ruggedness and GDP (likely due to more ruggedness = more secluded = less trade). \
+
+The weakly informative Gaussian prior of dnorm(0, 0.3) allowed the GDP ~ ruggedness slope to have its direction (sign) be influenced by the data, and differ by level of [cid]. \
+
+In contrast, using the exponential dexp(0.3) prior, which looks like this:
+```{r}
+curve(dexp(x, rate = 0.3), from=-1, to=10)
+```
+
+Which gives values below 0 a prior plausibility of 0. Thus the model restricts the slope of ruggedness to positive values, and estimates a slope of (very near) 0.
+
+
+
+***
+
+# 9H3. Sometimes changing a prior for one parameter has unanticipated effects on other parameters. This is because when a parameter is highly correlated with another parameter in the posterior, the prior influences both parameters. Here’s an example to work and think through. Go back to the leg length example in Chapter 6 and use the code there to simulate height and leg lengths for 100 imagined individuals. Below is the model you fit before, resulting in a highly correlated posterior for the two beta parameters. This time, fit the model using ulam:
+
+```{r}
+rm(list=ls())
+N <- 100 # number of individuals
+set.seed(909)
+height <- rnorm(N,10,2) # sim total height of each
+leg_prop <- runif(N,0.4,0.5) # leg as proportion of height
+leg_left <- leg_prop*height + # sim left leg as proportion + error
+rnorm( N , 0 , 0.02 )
+leg_right <- leg_prop*height + # sim right leg as proportion + error
+rnorm( N , 0 , 0.02 )
+# combine into data frame
+d <- data.frame(height,leg_left,leg_right)
+
+
+```
+
+
+```{r, message=F,warning=F}
+m5.8s <- ulam(
+  alist(
+    height ~ dnorm( mu , sigma ) ,
+    mu <- a + bl*leg_left + br*leg_right ,
+    a ~ dnorm( 10 , 100 ) ,
+    bl ~ dnorm( 2 , 10 ) ,
+    br ~ dnorm( 2 , 10 ) ,
+    sigma ~ dexp( 1 )
+  ) , data=d, chains=4,
+  start=list(a=10,bl=0,br=0.1,sigma=1) )
+
+```
+```{r}
+m5.8s2 <- ulam(
+  alist(
+    height ~ dnorm( mu , sigma ) ,
+    mu <- a + bl*leg_left + br*leg_right ,
+    a ~ dnorm( 10 , 100 ) ,
+    bl ~ dnorm( 2 , 10 ) ,
+    br ~ dnorm( 2 , 10 ) ,
+    sigma ~ dexp( 1 )
+  ) , data=d, chains=4,
+  constraints=list(br="lower=0"),
+  start=list(a=10,bl=0,br=0.1,sigma=1) )
+```
+These models predict height as a linear function of left and right leg lengths. 
+
+
+```{r}
+precis(m5.8s)
+precis(m5.8s2)
+```
+
+
+The first model summary is what we saw earlier in chapter 6; where the predictors (left and right legs) are highly correlated (thus redundant) and so many combinations of slopes bl and br can approximate the actual slope of height ~ leg length (which is around height = 1 + 2*leg_length), and thus produce the same predictions. This also explains the large sd's. \
+
+The second model pushes br to only positive values with the mean of the probability distribution at br=2.84, thus for the combinations of bl and br to approximate the actual slope for leg length (2), the mean slope of bl should be around -0.84.
+
+
+***
+
+
+# 9H4. For the two models fit in the previous problem, use WAIC or PSIS to compare the effective numbers of parameters for each model. You will need to use log_lik=TRUE to instruct ulam to compute the terms that both WAIC and PSIS need. Which model has more effective parameters? Why?
+
+
+
+```{r}
+# compare(m5.8s, m5.8s2, func=WAIC, log_lik="log_like")
+```
+
+This returns the error: "Error in attr(object, "cstanfit")$draws : $ operator not defined for this S4 class" which I've attempted to troubleshoot for about an hour now. I'll just assume that the WAIC / PSIS scores are the same since both models make the same predictions for the total influence of leg length on height.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
